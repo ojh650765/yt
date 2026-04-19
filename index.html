@@ -75,7 +75,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 }
 .sidebar .price-row{
   display:flex;justify-content:space-between;align-items:center;
-  padding:8px 0;font-size:14px;
+  padding:9px 0;font-size:15px;
 }
 .sidebar .price-row .pk{color:var(--muted)}
 .sidebar .price-row .pv{font-family:var(--ff-en);font-weight:600}
@@ -85,10 +85,10 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
   border-radius:12px;padding:16px;text-align:center;margin-top:12px;
 }
 .sidebar .price-highlight .big{
-  font-family:var(--ff-en);font-size:32px;font-weight:700;color:var(--accent);
+  font-family:var(--ff-en);font-size:38px;font-weight:700;color:var(--accent);
 }
-.sidebar .price-highlight .big small{font-size:13px;color:var(--muted);font-weight:400;margin-left:2px}
-.sidebar .price-highlight .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.sidebar .price-highlight .big small{font-size:15px;color:var(--muted);font-weight:400;margin-left:2px}
+.sidebar .price-highlight .sub{font-size:14px;color:var(--muted);margin-top:6px}
 
 .sidebar .date-info{
   font-size:13px;color:var(--muted);text-align:center;margin-top:16px;
@@ -138,24 +138,23 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 /* result card */
 .result-card{
   background:var(--bg-card2);border:2px solid var(--border);
-  border-radius:16px;padding:32px;text-align:center;
+  border-radius:16px;padding:40px 36px;text-align:center;
   animation:fadeUp .4s ease;
 }
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .result-card.border-safe{border-color:var(--safe)}
 .result-card.border-soon{border-color:var(--warn)}
 .result-card.border-expired{border-color:var(--danger)}
-.result-card .r-name{font-size:28px;font-weight:700;margin-bottom:4px}
-.result-card .r-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
-.result-card .dday-big{font-family:var(--ff-en);font-size:clamp(48px,10vw,68px);font-weight:700;line-height:1;margin-bottom:4px}
+.result-card .r-name{font-size:34px;font-weight:700;margin-bottom:8px}
+.result-card .dday-big{font-family:var(--ff-en);font-size:clamp(56px,14vw,80px);font-weight:700;line-height:1;margin-bottom:6px}
 .result-card .dday-big.safe{color:var(--safe)}
 .result-card .dday-big.soon{color:var(--warn)}
 .result-card .dday-big.expired{color:var(--danger)}
-.result-card .dday-label{font-size:13px;color:var(--muted);margin-bottom:28px}
-.result-card .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:left}
-.result-card .info-item .ik{font-size:12px;color:var(--muted);margin-bottom:4px}
-.result-card .info-item .iv{font-family:var(--ff-en);font-size:16px;font-weight:600}
-.result-card .status-bar{margin-top:24px;padding:12px 16px;border-radius:10px;font-size:14px;font-weight:600}
+.result-card .dday-label{font-size:16px;color:var(--muted);margin-bottom:32px}
+.result-card .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:left}
+.result-card .info-item .ik{font-size:14px;color:var(--muted);margin-bottom:6px}
+.result-card .info-item .iv{font-family:var(--ff-en);font-size:20px;font-weight:600}
+.result-card .status-bar{margin-top:28px;padding:14px 18px;border-radius:10px;font-size:16px;font-weight:600}
 .status-bar.safe{background:var(--safe-bg);color:var(--safe)}
 .status-bar.soon{background:var(--warn-bg);color:var(--warn)}
 .status-bar.expired{background:var(--danger-bg);color:var(--danger);animation:pulse 1.5s infinite}
@@ -434,7 +433,7 @@ function renderPrice(rate){
     <div class="price-row"><span class="pk">1인 (₹)</span><span class="pv">₹${pp.toFixed(1)}</span></div>
     <div class="price-row"><span class="pk">환율</span><span class="pv">1₹ = ${rate.toFixed(2)}₩</span></div>
     <div class="price-highlight">
-      <div class="big">₩${krwP.toLocaleString()}<small>/월</small></div>
+      <div class="big">₩${(Math.round(krwP/100)*100).toLocaleString()}<small>/월</small></div>
       <div class="sub">1인 월 납부금</div>
     </div>`;
   document.getElementById('sidebar-price').innerHTML=sidebarHtml;
@@ -531,11 +530,10 @@ function doSearch(name){
   const sl=found.state==='safe'?'안전':found.state==='soon'?'곧 만료':'만료됨';
   box.innerHTML=`<div class="result-card border-${found.state}">
     <div class="r-name">${esc(found.name)}</div>
-    <div class="r-sub">${found.count} payment${found.count>1?'s':''} · ${found.totalMonths}개월 누적</div>
     <div class="dday-big ${found.state}">${dn}</div>
     <div class="dday-label">${dl}</div>
     <div class="info-grid">
-      <div class="info-item"><div class="ik">월 납부금</div><div class="iv">${cachedKrwPerPerson?'₩'+cachedKrwPerPerson.toLocaleString():'로딩중...'}</div></div>
+      <div class="info-item"><div class="ik">월 납부금</div><div class="iv">${cachedKrwPerPerson?'₩'+(Math.round(cachedKrwPerPerson/100)*100).toLocaleString():'로딩중...'}</div></div>
       <div class="info-item"><div class="ik">커버 만료</div><div class="iv">${found.coverEnd}</div></div>
       <div class="info-item"><div class="ik">마지막 결제</div><div class="iv">${found.lastPayDate}</div></div>
       <div class="info-item"><div class="ik">상태</div><div class="iv">${sl}</div></div>
@@ -568,7 +566,7 @@ function renderAdmin(){
   if(!status.length){mBox.innerHTML='<div class="empty-msg">NO DATA</div>';}
   else{mBox.innerHTML=status.map(s=>{
     const dt=s.daysLeft<0?'D+'+Math.abs(s.daysLeft)+' · 만료됨':s.daysLeft===0?'D-DAY · 오늘!':'D-'+s.daysLeft;
-    return`<div class="card ${s.state==='safe'?'':'card-'+s.state}"><div class="status-dot dot-${s.state}"></div><div class="c-name">${esc(s.name)}</div><div class="c-sub">${s.count}회 · ${s.totalMonths}개월 누적</div><div class="c-row"><span class="ck">마지막 결제</span><span class="cv">${s.lastPayDate}</span></div><div class="c-row"><span class="ck">결제 개월</span><span class="cv">${s.lastPayMonths}개월</span></div><div class="c-row"><span class="ck">커버 만료</span><span class="cv">${s.coverEnd}</span></div><div class="c-dday ${s.state}">${dt}</div><div class="c-actions"><button onclick="quickAdd('${esc(s.name)}')">+ 결제 추가</button></div></div>`;
+    return`<div class="card ${s.state==='safe'?'':'card-'+s.state}"><div class="status-dot dot-${s.state}"></div><div class="c-name">${esc(s.name)}</div><div class="c-sub">${s.totalMonths}개월 누적</div><div class="c-row"><span class="ck">마지막 결제</span><span class="cv">${s.lastPayDate}</span></div><div class="c-row"><span class="ck">결제 개월</span><span class="cv">${s.lastPayMonths}개월</span></div><div class="c-row"><span class="ck">커버 만료</span><span class="cv">${s.coverEnd}</span></div><div class="c-dday ${s.state}">${dt}</div><div class="c-actions"><button onclick="quickAdd('${esc(s.name)}')">+ 결제 추가</button></div></div>`;
   }).join('');}
   const sorted=[...payments].sort((a,b)=>b.date.localeCompare(a.date)),hBox=document.getElementById('history');
   if(!sorted.length){hBox.innerHTML='<div class="empty-msg">NO HISTORY</div>';}
