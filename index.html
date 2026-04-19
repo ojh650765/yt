@@ -559,11 +559,10 @@ function renderBalance(){
   const statusClass=fc.nextInsuff?'critical':fc.insuffDate?'low':'ok';
   let warningHtml='';
   if(fc.nextInsuff){
-    warningHtml=`<div class="balance-warning danger">잔액 부족! ${fc.nextCharge.name} ₹${fc.nextCharge.amount} 결제 불가</div>`;
+    warningHtml=`<div class="balance-warning danger">${fc.nextCharge.name}<br>₹${fc.nextCharge.amount} 결제 불가</div>`;
   }else if(fc.insuffDate){
     const dd=fc.insuffDate;
-    const ds=(dd.getMonth()+1)+'/${dd.getDate()}';
-    warningHtml=`<div class="balance-warning warn">${(dd.getMonth()+1)}/${dd.getDate()} ${fc.insuffName} 결제 시 잔액 부족</div>`;
+    warningHtml=`<div class="balance-warning warn">${dd.getFullYear()}년 ${dd.getMonth()+1}월 ${dd.getDate()}일<br>${fc.insuffName} 잔액 부족</div>`;
   }
 
   const chargesHtml=fc.charges.map(c=>{
