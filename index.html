@@ -714,8 +714,9 @@ function setupSearch(){
   input.addEventListener('input',()=>{
     const v=input.value.trim();if(!v){sugBox.classList.remove('active');document.getElementById('search-result').innerHTML='';updateURL('');return;}
     const ns=getNames(),ms=ns.filter(n=>n.includes(v));
-    if(ms.length>0&&!(ms.length===1&&ms[0]===v)){sugBox.innerHTML=ms.map((n,i)=>'<div class="sug-item" data-name="'+esc(n)+'">'+esc(n)+'</div>').join('');sugBox.classList.add('active');si=-1;}else{sugBox.classList.remove('active');}
-    if(ns.includes(v))doSearch(v);
+    if(ms.length===1){sugBox.classList.remove('active');doSearch(ms[0]);input.value=ms[0];}
+    else if(ms.length>1){sugBox.innerHTML=ms.map((n,i)=>'<div class="sug-item" data-name="'+esc(n)+'">'+esc(n)+'</div>').join('');sugBox.classList.add('active');si=-1;}
+    else{sugBox.classList.remove('active');}
   });
   input.addEventListener('keydown',e=>{
     const items=sugBox.querySelectorAll('.sug-item');
