@@ -523,7 +523,7 @@ let balanceData = null;
 const BALANCE_URL = './balance.json';
 
 async function fetchBalance(){
-  try{const r=await fetch(BALANCE_URL+'?t='+Date.now());balanceData=await r.json();}catch{balanceData=null;}
+  try{const r=await fetch(getRawUrl('balance.json'));balanceData=await r.json();}catch{balanceData=null;}
 }
 
 function getNextChargeDate(day){
@@ -658,9 +658,15 @@ async function updateBalance(){
 }
 
 
+function getRawUrl(file){
+  const info=getRepoInfo();
+  if(info&&info.repo)return`https://raw.githubusercontent.com/${info.owner}/${info.repo}/master/${file}?t=${Date.now()}`;
+  return'./' + file + '?t=' + Date.now();
+}
+
 async function init(){
   setupToken();
-  try{const r=await fetch(DATA_URL+'?t='+Date.now());serverData=await r.json();}catch{serverData=[];}
+  try{const r=await fetch(getRawUrl('data.json'));serverData=await r.json();}catch{serverData=[];}
   const params=new URLSearchParams(location.search), searchName=params.get('name');
   if(ghToken)document.getElementById('admin-btn').style.display='';
   if(ghToken&&sessionStorage.getItem('yt_admin')==='1'){
