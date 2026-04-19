@@ -758,7 +758,7 @@ function renderAdmin(){
   const now=new Date(),dow=['일','월','화','수','목','금','토'][now.getDay()];
   document.getElementById('admin-today').textContent=fmtDate(now)+' ('+dow+')';
   const ls=document.getElementById('local-status');
-  if(ghToken){ls.innerHTML=hasLocalChanges?'Token connected<span class="local-badge">UNPUBLISHED</span>':'Token connected · Auto-sync ON';}
+  if(ghToken){ls.innerHTML=hasLocalChanges?'Token connected<span class="local-badge">UNPUBLISHED</span>':'Token connected';}
   else{ls.innerHTML=hasLocalChanges?'No token<span class="local-badge">MANUAL</span>':'No token · Export로 수동 저장';}
   const names=[...new Set(payments.map(p=>p.name))];
   document.getElementById('name-list').innerHTML=names.map(n=>'<option value="'+esc(n)+'">').join('');
