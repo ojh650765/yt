@@ -46,7 +46,34 @@ jobs:
             if (m.dl === 0) return '🔴 ' + m.name + ' — 오늘 만료!';
             return '🟢 ' + m.name + ' — D-' + m.dl;
           });
-          console.log('YouTube Premium 결제 현황\n\n' + lines.join('\n'));
+
+          // 잔액 체크
+          let balMsg = '';
+          try {
+            const bal = JSON.parse(fs.readFileSync('balance.json', 'utf8'));
+            const charges = bal.charges || [];
+            const d = today.getDate();
+            let amount = bal.amount;
+            const monthlyTotal = charges.reduce((s,c) => s + c.amount, 0);
+
+            // 다음 결제 확인
+            const upcoming = [];
+            charges.forEach(c => {
+              const nd = d < c.day ? c.day : c.day;
+              const daysUntil = d <= c.day ? c.day - d : (new Date(today.getFullYear(), today.getMonth()+1, c.day) - today) / 86400000;
+              upcoming.push({ name: c.name, amount: c.amount, day: c.day, daysUntil: Math.round(daysUntil) });
+            });
+            upcoming.sort((a,b) => a.daysUntil - b.daysUntil);
+
+            balMsg = '\n\n💰 INR 잔액: ₹' + amount.toLocaleString();
+            if (amount < upcoming[0].amount) {
+              balMsg += '\n🚨 잔액 부족! ' + upcoming[0].name + ' ₹' + upcoming[0].amount + ' 결제 불가!';
+            } else if (amount < monthlyTotal) {
+              balMsg += '\n⚠️ 이번 달 결제액(₹' + monthlyTotal + ') 부족 예상';
+            }
+          } catch(e) {}
+
+          console.log('YouTube Premium 결제 현황\n\n' + lines.join('\n') + balMsg);
           ")
 
           echo "$MSG"

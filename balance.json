@@ -1,0 +1,8 @@
+{
+  "amount": 1275,
+  "updated": "2026-04-20",
+  "charges": [
+    { "name": "YouTube Premium", "amount": 389, "day": 6 },
+    { "name": "기타 구독", "amount": 75, "day": 29 }
+  ]
+}
