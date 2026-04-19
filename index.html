@@ -87,7 +87,7 @@ body{
 
 /* ===== PUBLIC VIEW ===== */
 #public-view{
-  max-width:560px;margin:0 auto;
+  max-width:640px;margin:0 auto;
   padding:80px 24px 60px;
   min-height:100vh;
   display:flex;flex-direction:column;
@@ -216,36 +216,40 @@ body{
 /* price card */
 .price-card{
   background:var(--card);border:1px solid var(--line);
-  padding:20px 24px;margin-bottom:32px;
+  padding:24px 28px;margin-bottom:32px;
   display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:16px;
+  gap:24px;
 }
-.price-card .price-left{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+@media(max-width:520px){
+  .price-card{flex-direction:column;align-items:flex-start}
+}
+.price-card .price-left{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .price-card .price-total{
-  font-family:'Fraunces',serif;font-size:22px;font-weight:700;
-  letter-spacing:-.02em;
+  font-family:'Fraunces',serif;font-size:26px;font-weight:700;
+  letter-spacing:-.02em;white-space:nowrap;
 }
-.price-card .price-total small{font-size:13px;color:var(--muted);font-weight:400}
-.price-card .price-arrow{color:var(--muted);font-size:16px}
+.price-card .price-total small{font-size:15px;color:var(--muted);font-weight:400}
+.price-card .price-arrow{color:var(--muted);font-size:18px}
 .price-card .price-per{
-  font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--muted);
+  white-space:nowrap;
 }
 .price-card .price-krw{
-  font-family:'Fraunces',serif;font-size:28px;font-weight:800;
-  color:var(--accent);letter-spacing:-.02em;
+  font-family:'Fraunces',serif;font-size:32px;font-weight:800;
+  color:var(--accent);letter-spacing:-.02em;white-space:nowrap;
 }
 .price-card .price-krw small{
-  font-size:13px;color:var(--muted);font-weight:400;
+  font-size:14px;color:var(--muted);font-weight:400;
   font-family:'JetBrains Mono',monospace;margin-left:4px;
 }
 .price-card .price-rate{
   font-family:'JetBrains Mono',monospace;
   font-size:13px;color:var(--muted);
-  text-align:right;letter-spacing:.05em;
+  text-align:right;letter-spacing:.05em;white-space:nowrap;
 }
 .price-card .price-loading{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:14px;color:var(--muted);
 }
 
 .pub-footer{
@@ -491,6 +495,20 @@ body{
 }
 .admin-footer button:hover{color:var(--accent)}
 
+/* toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  padding:12px 24px;font-family:'JetBrains Mono',monospace;
+  font-size:13px;z-index:2000;
+  animation:toastIn .3s ease,toastOut .3s ease 2.7s forwards;
+  white-space:nowrap;
+}
+.toast.ok{background:var(--safe);color:white}
+.toast.err{background:var(--danger);color:white}
+.toast.info{background:var(--ink);color:var(--bg)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
 @media(max-width:600px){
   #public-view{padding:48px 16px 40px}
   .result-card{padding:24px 20px}
@@ -598,13 +616,13 @@ body{
   <div class="history" id="history"></div>
 
   <div class="admin-footer">
-    <div>Admin · Changes saved locally until exported</div>
+    <div id="footer-token-info"></div>
     <div>
       <button onclick="exportData()">Export JSON</button>
       &nbsp;&middot;&nbsp;
-      <button onclick="syncFromServer()">Sync from server</button>
-      &nbsp;&middot;&nbsp;
       <button onclick="resetData()">Reset all</button>
+      &nbsp;&middot;&nbsp;
+      <button onclick="clearToken()">토큰 제거</button>
     </div>
   </div>
 </div>
@@ -618,6 +636,7 @@ body{
 const ADMIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
 const DATA_URL = './data.json';
 const LS_KEY = 'yt_premium_admin_v2';
+const TOKEN_KEY = 'yt_gh_token';
 const INR_TOTAL = 389;
 const MEMBER_COUNT = 6;
 
@@ -627,6 +646,95 @@ let serverData = [];
 let isAdmin = false;
 let hasLocalChanges = false;
 let cachedKrwPerPerson = null;
+let ghToken = null;
+
+// ===================== TOAST =====================
+function toast(msg, type='info') {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ===================== GITHUB API =====================
+function getRepoInfo() {
+  const host = location.hostname;
+  const path = location.pathname;
+  if (host.endsWith('.github.io')) {
+    const owner = host.replace('.github.io', '');
+    const repo = path.split('/').filter(Boolean)[0] || '';
+    return { owner, repo };
+  }
+  return null;
+}
+
+async function ghCommitData(data) {
+  if (!ghToken) { toast('GitHub 토큰이 없습니다', 'err'); return false; }
+  const info = getRepoInfo();
+  if (!info || !info.repo) { toast('GitHub 레포 감지 실패', 'err'); return false; }
+  try {
+    // 1. get current sha
+    const getResp = await fetch(
+      `https://api.github.com/repos/${info.owner}/${info.repo}/contents/data.json`,
+      { headers: { 'Authorization': 'token ' + ghToken } }
+    );
+    if (!getResp.ok) { toast('파일 정보 조회 실패 (토큰 확인)', 'err'); return false; }
+    const file = await getResp.json();
+    // 2. commit
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2) + '\n')));
+    const putResp = await fetch(
+      `https://api.github.com/repos/${info.owner}/${info.repo}/contents/data.json`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'token ' + ghToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: 'Update payment data',
+          content: content,
+          sha: file.sha
+        })
+      }
+    );
+    if (putResp.ok) {
+      toast('GitHub에 저장 완료', 'ok');
+      serverData = structuredClone(data);
+      localStorage.removeItem(LS_KEY);
+      hasLocalChanges = false;
+      return true;
+    } else {
+      toast('GitHub 저장 실패 (권한 확인)', 'err');
+      return false;
+    }
+  } catch {
+    toast('네트워크 오류', 'err');
+    return false;
+  }
+}
+
+function setupToken() {
+  // 1. check URL hash for token
+  const hash = location.hash;
+  if (hash.startsWith('#token=')) {
+    ghToken = hash.replace('#token=', '');
+    localStorage.setItem(TOKEN_KEY, ghToken);
+    history.replaceState(null, '', location.pathname + location.search);
+    toast('토큰 저장 완료', 'ok');
+  } else {
+    // 2. load from localStorage
+    ghToken = localStorage.getItem(TOKEN_KEY) || null;
+  }
+}
+
+function clearToken() {
+  ghToken = null;
+  localStorage.removeItem(TOKEN_KEY);
+  toast('토큰이 제거되었습니다', 'info');
+  renderAdmin();
+}
 
 // ===================== EXCHANGE RATE =====================
 async function fetchExchangeRate() {
@@ -673,6 +781,8 @@ function renderPriceError() {
 
 // ===================== INIT =====================
 async function init() {
+  setupToken();
+
   try {
     const resp = await fetch(DATA_URL + '?t=' + Date.now());
     serverData = await resp.json();
@@ -988,12 +1098,16 @@ function renderAdmin() {
   document.getElementById('admin-today').textContent =
     fmtDate(now) + ' (' + dow + ')';
 
-  // local changes indicator
+  // status indicator
   const localStatus = document.getElementById('local-status');
-  if (hasLocalChanges) {
-    localStatus.innerHTML = 'Local changes<span class="local-badge">UNPUBLISHED</span>';
+  if (ghToken) {
+    localStatus.innerHTML = hasLocalChanges
+      ? 'Token connected<span class="local-badge">UNPUBLISHED</span>'
+      : 'Token connected · Auto-sync ON';
   } else {
-    localStatus.textContent = 'Synced with server';
+    localStatus.innerHTML = hasLocalChanges
+      ? 'No token<span class="local-badge">MANUAL MODE</span>'
+      : 'No token · Export로 수동 저장';
   }
 
   // name datalist
@@ -1063,15 +1177,27 @@ function renderAdmin() {
       </div>
     `).join('');
   }
+
+  // footer token info
+  const footerInfo = document.getElementById('footer-token-info');
+  if (ghToken) {
+    footerInfo.textContent = 'GitHub 연동됨 · 변경 시 자동 저장';
+  } else {
+    footerInfo.textContent = 'Token 미설정 · Export로 수동 저장';
+  }
 }
 
 // ===================== ADMIN ACTIONS =====================
-function saveLocal() {
+async function saveAndSync() {
   localStorage.setItem(LS_KEY, JSON.stringify(payments));
   hasLocalChanges = true;
+  if (ghToken) {
+    await ghCommitData(payments);
+  }
+  renderAdmin();
 }
 
-function addPayment() {
+async function addPayment() {
   const name = document.getElementById('f-name').value.trim();
   const date = document.getElementById('f-date').value;
   const months = parseInt(document.getElementById('f-months').value, 10);
@@ -1080,10 +1206,9 @@ function addPayment() {
     return;
   }
   payments.push({ id: uid(), name, date, months });
-  saveLocal();
   document.getElementById('f-name').value = '';
   document.getElementById('f-months').value = 1;
-  renderAdmin();
+  await saveAndSync();
 }
 
 function quickAdd(name) {
@@ -1093,23 +1218,14 @@ function quickAdd(name) {
   document.querySelector('.form-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function deletePayment(id) {
+async function deletePayment(id) {
   if (!confirm('이 결제 기록을 삭제할까요?')) return;
   payments = payments.filter(p => p.id !== id);
-  saveLocal();
-  renderAdmin();
+  await saveAndSync();
 }
 
 function resetData() {
   if (!confirm('모든 데이터를 서버 원본으로 되돌릴까요?')) return;
-  payments = structuredClone(serverData);
-  localStorage.removeItem(LS_KEY);
-  hasLocalChanges = false;
-  renderAdmin();
-}
-
-function syncFromServer() {
-  if (hasLocalChanges && !confirm('로컬 변경사항이 있습니다. 서버 데이터로 덮어쓸까요?')) return;
   payments = structuredClone(serverData);
   localStorage.removeItem(LS_KEY);
   hasLocalChanges = false;
