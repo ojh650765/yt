@@ -39,8 +39,29 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
   display:grid;grid-template-columns:280px 1fr;gap:24px;
   align-items:start;
 }
+.page-wrap.three-col{
+  max-width:1440px;
+  grid-template-columns:260px 1fr 280px;
+}
+@media(max-width:1100px){
+  .page-wrap.three-col{grid-template-columns:260px 1fr}
+  .page-wrap.three-col .right-panel{display:none}
+}
 @media(max-width:900px){
   .page-wrap{grid-template-columns:1fr;padding:24px 16px}
+  .page-wrap.three-col{grid-template-columns:1fr}
+  .page-wrap.three-col .right-panel{display:block}
+}
+
+/* right panel */
+.right-panel{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;
+  position:sticky;top:40px;
+  box-shadow:var(--shadow);
+}
+@media(max-width:900px){
+  .right-panel{position:static}
 }
 
 /* ===== SIDEBAR ===== */
@@ -330,7 +351,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 </div>
 
 <!-- ===== ADMIN VIEW ===== -->
-<div id="admin-view" class="page-wrap" style="display:none">
+<div id="admin-view" class="page-wrap three-col" style="display:none">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -345,15 +366,6 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
     <div class="price-section" id="admin-sidebar-price">
       <h3>MONTHLY COST</h3>
       <div style="text-align:center;color:var(--muted);font-size:15px;padding:12px 0">환율 불러오는 중...</div>
-    </div>
-
-    <div class="sep"></div>
-
-    <div class="sep"></div>
-
-    <div class="balance-section" id="balance-section">
-      <h3>INR BALANCE</h3>
-      <div style="text-align:center;color:var(--muted);font-size:14px;padding:12px 0">로딩중...</div>
     </div>
 
     <div class="sep"></div>
@@ -409,6 +421,14 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
         <button onclick="resetData()">Reset</button> &middot;
         <button onclick="clearToken()">토큰 제거</button>
       </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="balance-section" id="balance-section">
+      <h3>INR BALANCE</h3>
+      <div style="text-align:center;color:var(--muted);font-size:14px;padding:12px 0">로딩중...</div>
     </div>
   </div>
 </div>
