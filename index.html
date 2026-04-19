@@ -523,7 +523,7 @@ let balanceData = null;
 const BALANCE_URL = './balance.json';
 
 async function fetchBalance(){
-  try{const r=await fetch(getRawUrl('balance.json'));balanceData=await r.json();}catch{balanceData=null;}
+  try{balanceData=await fetchFile('balance.json');}catch{balanceData=null;}
 }
 
 function getNextChargeDate(day){
@@ -658,15 +658,24 @@ async function updateBalance(){
 }
 
 
-function getRawUrl(file){
+async function fetchFile(file){
+  if(ghToken){
+    const info=getRepoInfo();
+    if(info&&info.repo){
+      try{
+        const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${file}`,{headers:{'Authorization':'token '+ghToken}});
+        if(r.ok){const d=await r.json();return JSON.parse(atob(d.content));}
+      }catch{}
+    }
+  }
   const info=getRepoInfo();
-  if(info&&info.repo)return`https://raw.githubusercontent.com/${info.owner}/${info.repo}/master/${file}?t=${Date.now()}`;
-  return'./' + file + '?t=' + Date.now();
+  const url=info&&info.repo?`https://raw.githubusercontent.com/${info.owner}/${info.repo}/master/${file}?t=${Date.now()}`:'./'+file+'?t='+Date.now();
+  const r=await fetch(url);return r.json();
 }
 
 async function init(){
   setupToken();
-  try{const r=await fetch(getRawUrl('data.json'));serverData=await r.json();}catch{serverData=[];}
+  try{serverData=await fetchFile('data.json');}catch{serverData=[];}
   const params=new URLSearchParams(location.search), searchName=params.get('name');
   if(ghToken)document.getElementById('admin-btn').style.display='';
   if(ghToken&&sessionStorage.getItem('yt_admin')==='1'){
