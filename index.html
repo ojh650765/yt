@@ -39,7 +39,7 @@ body{
 .mono{font-family:'JetBrains Mono',monospace}
 .serif{font-family:'Fraunces',serif}
 
-/* ===== PASSWORD MODAL ===== */
+/* ===== INFO MODAL ===== */
 .modal-overlay{
   display:none;position:fixed;inset:0;
   background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
@@ -48,42 +48,30 @@ body{
 .modal-overlay.active{display:flex}
 .modal-box{
   background:var(--ink);color:var(--bg);
-  padding:40px;width:90%;max-width:360px;
+  padding:40px;width:90%;max-width:420px;
   text-align:center;
 }
 .modal-box h2{
   font-family:'Fraunces',serif;font-size:22px;
-  font-weight:600;margin-bottom:8px;letter-spacing:-.02em;
+  font-weight:600;margin-bottom:12px;letter-spacing:-.02em;
 }
 .modal-box p{
-  font-size:13px;color:#999;margin-bottom:24px;
+  font-size:15px;color:#999;margin-bottom:16px;line-height:1.6;
 }
-.modal-box input{
-  width:100%;padding:12px 16px;
-  background:transparent;border:none;
-  border-bottom:2px solid #555;
-  color:var(--bg);font-family:'JetBrains Mono',monospace;
-  font-size:16px;text-align:center;letter-spacing:.3em;
-}
-.modal-box input:focus{outline:none;border-bottom-color:var(--accent)}
-.modal-box .error{
-  color:var(--accent);font-size:13px;
-  margin-top:10px;min-height:18px;
-  font-family:'JetBrains Mono',monospace;
+.modal-box code{
+  display:block;background:#333;padding:12px 16px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:#eee;margin:12px 0;word-break:break-all;
+  text-align:left;border-radius:4px;
 }
 .modal-box button{
-  margin-top:20px;padding:12px 32px;
+  margin-top:16px;padding:12px 32px;
   background:var(--accent);color:white;border:none;
-  font-family:'JetBrains Mono',monospace;font-size:13px;
+  font-family:'JetBrains Mono',monospace;font-size:15px;
   text-transform:uppercase;letter-spacing:.2em;
   cursor:pointer;font-weight:600;
 }
 .modal-box button:hover{opacity:.9}
-.modal-box .cancel{
-  background:transparent;color:#888;
-  border:1px solid #555;margin-left:8px;
-}
-.modal-box .cancel:hover{color:var(--bg);border-color:var(--bg)}
 
 /* ===== PUBLIC VIEW ===== */
 #public-view{
@@ -104,7 +92,7 @@ body{
 .pub-header h1 .accent{color:var(--accent);font-style:italic}
 .pub-header .sub{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   margin-top:10px;text-transform:uppercase;
   letter-spacing:.15em;
 }
@@ -162,7 +150,7 @@ body{
 }
 .result-card .r-sub{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.1em;
   margin-bottom:24px;
 }
@@ -177,7 +165,7 @@ body{
 .result-card .dday-big.expired{color:var(--danger)}
 .result-card .dday-label{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.15em;
   margin-bottom:28px;
 }
@@ -187,7 +175,7 @@ body{
 }
 .result-card .info-item .ik{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.12em;
   margin-bottom:4px;
 }
@@ -198,7 +186,7 @@ body{
 .result-card .status-bar{
   margin-top:24px;padding:10px 16px;
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;font-weight:600;
+  font-size:15px;font-weight:600;
 }
 .status-bar.safe{background:var(--safe-bg);color:var(--safe)}
 .status-bar.soon{background:var(--warn-bg);color:var(--warn)}
@@ -210,7 +198,7 @@ body{
   text-align:center;padding:40px;
   color:var(--muted);
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;letter-spacing:.05em;
+  font-size:15px;letter-spacing:.05em;
 }
 
 /* price card */
@@ -239,17 +227,17 @@ body{
   color:var(--accent);letter-spacing:-.02em;white-space:nowrap;
 }
 .price-card .price-krw small{
-  font-size:14px;color:var(--muted);font-weight:400;
+  font-size:15px;color:var(--muted);font-weight:400;
   font-family:'JetBrains Mono',monospace;margin-left:4px;
 }
 .price-card .price-rate{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   text-align:right;letter-spacing:.05em;white-space:nowrap;
 }
 .price-card .price-loading{
   font-family:'JetBrains Mono',monospace;
-  font-size:14px;color:var(--muted);
+  font-size:15px;color:var(--muted);
 }
 
 .pub-footer{
@@ -259,12 +247,12 @@ body{
 }
 .pub-footer .date{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   letter-spacing:.05em;
 }
 .admin-link{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   background:none;border:1px solid var(--line);
   padding:6px 12px;cursor:pointer;
   letter-spacing:.1em;text-transform:uppercase;
@@ -293,7 +281,7 @@ body{
 .admin-header .title-block h1 .accent{color:var(--accent);font-style:italic}
 .admin-header .title-block p{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   margin-top:8px;text-transform:uppercase;letter-spacing:.15em;
 }
 .admin-header .right-block{
@@ -301,13 +289,13 @@ body{
 }
 .admin-header .today-badge{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   border:1px solid var(--line);padding:8px 14px;
   background:var(--card);
 }
 .admin-header .logout-btn{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;padding:8px 14px;
+  font-size:15px;padding:8px 14px;
   background:var(--ink);color:var(--bg);
   border:none;cursor:pointer;
   text-transform:uppercase;letter-spacing:.1em;
@@ -319,13 +307,13 @@ body{
   background:var(--ink);color:var(--bg);
   padding:10px 20px;margin-bottom:24px;
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;letter-spacing:.08em;
+  font-size:15px;letter-spacing:.08em;
   display:flex;justify-content:space-between;
   align-items:center;flex-wrap:wrap;gap:8px;
 }
 .admin-bar .local-badge{
   background:var(--accent);color:white;
-  padding:2px 8px;font-size:13px;
+  padding:2px 8px;font-size:15px;
   margin-left:8px;
 }
 
@@ -340,19 +328,19 @@ body{
 .stat:last-child{border-right:none}
 .stat .label{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;
 }
 .stat .value{
   font-family:'Fraunces',serif;font-size:28px;
   font-weight:600;letter-spacing:-.02em;
 }
-.stat .value small{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+.stat .value small{font-size:15px;color:var(--muted);font-weight:400;margin-left:4px}
 
 /* section title */
 .section-title{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;text-transform:uppercase;
+  font-size:15px;text-transform:uppercase;
   letter-spacing:.25em;color:var(--muted);
   margin-bottom:16px;display:flex;
   align-items:center;gap:12px;
@@ -386,12 +374,12 @@ body{
 }
 .card .c-sub{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em;
 }
 .card .c-row{
   display:flex;justify-content:space-between;
-  padding:7px 0;border-top:1px dashed var(--line);font-size:13px;
+  padding:7px 0;border-top:1px dashed var(--line);font-size:15px;
 }
 .card .c-row:first-of-type{border-top:none}
 .card .c-row .ck{color:var(--muted)}
@@ -407,7 +395,7 @@ body{
 .card .c-actions{display:flex;gap:6px;margin-top:10px}
 .card .c-actions button{
   flex:1;font-family:'JetBrains Mono',monospace;
-  font-size:13px;letter-spacing:.1em;
+  font-size:15px;letter-spacing:.1em;
   padding:7px;border:1px solid var(--line);
   background:transparent;cursor:pointer;
   text-transform:uppercase;transition:all .15s;
@@ -431,21 +419,21 @@ body{
 }
 .field label{
   display:block;font-family:'JetBrains Mono',monospace;
-  font-size:13px;text-transform:uppercase;
+  font-size:15px;text-transform:uppercase;
   letter-spacing:.15em;margin-bottom:6px;color:#bbb;
 }
 .field input{
   width:100%;padding:10px 12px;
   background:transparent;border:none;
   border-bottom:1px solid #555;
-  color:var(--bg);font-family:'JetBrains Mono',monospace;font-size:14px;
+  color:var(--bg);font-family:'JetBrains Mono',monospace;font-size:15px;
 }
 .field input:focus{outline:none;border-bottom-color:var(--accent)}
 .field input::-webkit-calendar-picker-indicator{filter:invert(1)}
 .btn-add{
   padding:12px 20px;background:var(--accent);
   color:white;border:none;
-  font-family:'JetBrains Mono',monospace;font-size:13px;
+  font-family:'JetBrains Mono',monospace;font-size:15px;
   text-transform:uppercase;letter-spacing:.2em;
   cursor:pointer;font-weight:600;transition:transform .15s;
 }
@@ -456,18 +444,18 @@ body{
 .history-row{
   display:grid;grid-template-columns:130px 1fr 90px 70px;
   padding:12px 20px;border-bottom:1px solid var(--line);
-  font-size:13px;align-items:center;gap:12px;
+  font-size:15px;align-items:center;gap:12px;
 }
 .history-row:last-child{border-bottom:none}
 .history-row .h-date{font-family:'JetBrains Mono',monospace;color:var(--muted)}
 .history-row .h-name{font-weight:600}
 .history-row .h-months{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);text-align:right;
+  font-size:15px;color:var(--muted);text-align:right;
 }
 .history-row .h-del{
   padding:4px 8px;font-family:'JetBrains Mono',monospace;
-  font-size:13px;border:1px solid var(--line);
+  font-size:15px;border:1px solid var(--line);
   background:transparent;cursor:pointer;
   color:var(--muted);justify-self:end;
 }
@@ -475,7 +463,7 @@ body{
 .empty-msg{
   padding:40px;text-align:center;color:var(--muted);
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;letter-spacing:.1em;
+  font-size:15px;letter-spacing:.1em;
 }
 
 /* admin footer */
@@ -483,7 +471,7 @@ body{
   margin-top:40px;padding-top:20px;border-top:1px solid var(--line);
   display:flex;justify-content:space-between;
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--muted);
+  font-size:15px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.15em;
   flex-wrap:wrap;gap:12px;
 }
@@ -499,7 +487,7 @@ body{
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
   padding:12px 24px;font-family:'JetBrains Mono',monospace;
-  font-size:13px;z-index:2000;
+  font-size:15px;z-index:2000;
   animation:toastIn .3s ease,toastOut .3s ease 2.7s forwards;
   white-space:nowrap;
 }
@@ -524,17 +512,12 @@ body{
 </head>
 <body>
 
-<!-- ==================== PASSWORD MODAL ==================== -->
-<div class="modal-overlay" id="pw-modal">
+<!-- modal (reserved) -->
+<div class="modal-overlay" id="info-modal">
   <div class="modal-box">
-    <h2 class="serif">Admin</h2>
-    <p>관리자 비밀번호를 입력하세요</p>
-    <input type="password" id="pw-input" placeholder="****" autocomplete="off">
-    <div class="error" id="pw-error"></div>
-    <div>
-      <button onclick="submitPassword()">Enter</button>
-      <button class="cancel" onclick="closeModal()">Cancel</button>
-    </div>
+    <h2 class="serif">알림</h2>
+    <p id="modal-msg"></p>
+    <button onclick="closeModal()">닫기</button>
   </div>
 </div>
 
@@ -559,7 +542,7 @@ body{
 
   <div class="pub-footer">
     <div class="date" id="pub-date"></div>
-    <button class="admin-link" onclick="openAdminModal()">Admin</button>
+    <button class="admin-link" id="admin-btn" onclick="tryEnterAdmin()" style="display:none">Admin</button>
   </div>
 </div>
 
@@ -629,11 +612,6 @@ body{
 
 <script>
 // ===================== CONFIG =====================
-// 관리자 비밀번호의 SHA-256 해시
-// 기본값: "1234" → 변경하려면 브라우저 콘솔에서:
-//   crypto.subtle.digest('SHA-256', new TextEncoder().encode('새비밀번호'))
-//     .then(b => console.log(Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')))
-const ADMIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
 const DATA_URL = './data.json';
 const LS_KEY = 'yt_premium_admin_v2';
 const TOKEN_KEY = 'yt_gh_token';
@@ -794,8 +772,13 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const searchName = params.get('name');
 
-  // Check admin session
-  if (sessionStorage.getItem('yt_admin') === '1') {
+  // Show admin button only if token exists
+  if (ghToken) {
+    document.getElementById('admin-btn').style.display = '';
+  }
+
+  // Check admin session (only if token exists)
+  if (ghToken && sessionStorage.getItem('yt_admin') === '1') {
     isAdmin = true;
     const local = localStorage.getItem(LS_KEY);
     if (local) {
@@ -883,42 +866,25 @@ function computeStatus(data) {
   return result;
 }
 
-// ===================== SHA-256 =====================
-async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
 // ===================== AUTH =====================
-function openAdminModal() {
-  document.getElementById('pw-modal').classList.add('active');
-  document.getElementById('pw-input').value = '';
-  document.getElementById('pw-error').textContent = '';
-  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+function tryEnterAdmin() {
+  if (!ghToken) {
+    // 토큰 없으면 진입 불가 — 아무 반응 없음
+    return;
+  }
+  isAdmin = true;
+  sessionStorage.setItem('yt_admin', '1');
+  const local = localStorage.getItem(LS_KEY);
+  if (local) {
+    payments = JSON.parse(local);
+    hasLocalChanges = true;
+  } else {
+    payments = structuredClone(serverData);
+  }
+  showAdmin();
 }
 function closeModal() {
-  document.getElementById('pw-modal').classList.remove('active');
-}
-async function submitPassword() {
-  const pw = document.getElementById('pw-input').value;
-  const hash = await sha256(pw);
-  if (hash === ADMIN_HASH) {
-    isAdmin = true;
-    sessionStorage.setItem('yt_admin', '1');
-    closeModal();
-    const local = localStorage.getItem(LS_KEY);
-    if (local) {
-      payments = JSON.parse(local);
-      hasLocalChanges = true;
-    } else {
-      payments = structuredClone(serverData);
-    }
-    showAdmin();
-  } else {
-    document.getElementById('pw-error').textContent = '비밀번호가 틀렸습니다';
-    document.getElementById('pw-input').value = '';
-    document.getElementById('pw-input').focus();
-  }
+  document.getElementById('info-modal').classList.remove('active');
 }
 function exitAdmin() {
   isAdmin = false;
@@ -927,12 +893,6 @@ function exitAdmin() {
   hasLocalChanges = false;
   showPublic();
 }
-
-// Password modal Enter key
-document.getElementById('pw-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') submitPassword();
-  if (e.key === 'Escape') closeModal();
-});
 
 // ===================== VIEW SWITCHING =====================
 function showPublic() {
