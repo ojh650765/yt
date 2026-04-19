@@ -659,18 +659,16 @@ async function updateBalance(){
 
 
 async function fetchFile(file){
-  if(ghToken){
-    const info=getRepoInfo();
-    if(info&&info.repo){
-      try{
-        const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${file}`,{headers:{'Authorization':'token '+ghToken}});
-        if(r.ok){const d=await r.json();return JSON.parse(atob(d.content));}
-      }catch{}
-    }
-  }
   const info=getRepoInfo();
-  const url=info&&info.repo?`https://raw.githubusercontent.com/${info.owner}/${info.repo}/master/${file}?t=${Date.now()}`:'./'+file+'?t='+Date.now();
-  const r=await fetch(url);return r.json();
+  if(info&&info.repo){
+    try{
+      const headers=ghToken?{'Authorization':'token '+ghToken}:{};
+      const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${file}`,{headers});
+      if(r.ok){const d=await r.json();return JSON.parse(atob(d.content));}
+    }catch{}
+  }
+  const r=await fetch('./'+file+'?t='+Date.now());
+  return r.json();
 }
 
 async function init(){
