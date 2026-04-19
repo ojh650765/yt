@@ -535,7 +535,6 @@ function doSearch(name){
     <div class="info-grid">
       <div class="info-item"><div class="ik">마지막 결제</div><div class="iv">${found.lastPayDate}</div></div>
       <div class="info-item"><div class="ik">커버 만료</div><div class="iv">${found.coverEnd}</div></div>
-      <div class="info-item"><div class="ik">상태</div><div class="iv">${sl}</div></div>
     </div>
     <div class="status-bar ${found.state}">${found.state==='safe'?'결제가 유효합니다':found.state==='soon'?'곧 만료됩니다 — 갱신이 필요합니다':'만료되었습니다 — 결제를 갱신해주세요'}</div>
   </div>`;
