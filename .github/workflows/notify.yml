@@ -47,7 +47,6 @@ jobs:
             return '🟢 ' + m.name + ' — D-' + m.dl;
           });
 
-          // 잔액 체크
           let balMsg = '';
           try {
             const bal = JSON.parse(fs.readFileSync('balance.json', 'utf8'));
@@ -56,7 +55,6 @@ jobs:
             let amount = bal.amount;
             const monthlyTotal = charges.reduce((s,c) => s + c.amount, 0);
 
-            // 다음 결제 확인
             const upcoming = [];
             charges.forEach(c => {
               const nd = d < c.day ? c.day : c.day;

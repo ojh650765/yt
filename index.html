@@ -118,17 +118,25 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 .balance-amount.critical{color:var(--danger)}
 .balance-updated{font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px}
 .balance-charges{font-size:14px}
-.balance-charge-row{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border)}
+.balance-charge-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border)}
 .balance-charge-row:first-child{border-top:none}
 .balance-charge-row .bc-name{color:var(--muted)}
-.balance-charge-row .bc-val{font-family:var(--ff-en);font-weight:600}
+.balance-charge-row .bc-val{font-family:var(--ff-en);font-weight:600;white-space:nowrap}
+.balance-forecast{margin-top:12px;padding:12px;border-radius:10px;background:var(--bg-card2);font-size:13px;color:var(--muted)}
+.balance-forecast .bf-row{display:flex;justify-content:space-between;padding:4px 0}
+.balance-forecast .bf-date{color:var(--ink)}
+.balance-forecast .bf-amt{font-family:var(--ff-en);font-weight:600}
+.balance-forecast .bf-amt.negative{color:var(--danger)}
 .balance-warning{margin-top:12px;padding:10px;border-radius:10px;font-size:14px;font-weight:600;text-align:center}
 .balance-warning.warn{background:var(--warn-bg);color:var(--warn)}
 .balance-warning.danger{background:var(--danger-bg);color:var(--danger)}
-.balance-edit{margin-top:12px;display:flex;gap:8px}
-.balance-edit input{flex:1;padding:8px 10px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--ff);font-size:14px}
-.balance-edit input:focus{outline:none;border-color:var(--accent)}
-.balance-edit button{padding:8px 14px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer}
+.bal-field{margin-top:10px}
+.bal-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.bal-field .bal-row{display:flex;gap:6px}
+.bal-field input{flex:1;min-width:0;padding:8px 10px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--ff);font-size:14px}
+.bal-field input:focus{outline:none;border-color:var(--accent)}
+.bal-save{margin-top:10px;width:100%;padding:10px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-family:var(--ff);font-size:14px;font-weight:600;cursor:pointer}
+.bal-save:hover{opacity:.85}
 
 /* ===== MAIN CONTENT ===== */
 .main-content{
@@ -420,7 +428,7 @@ function toast(msg, type='info') {
   document.body.appendChild(el);setTimeout(()=>el.remove(),3200);
 }
 
-// GitHub API
+
 function getRepoInfo() {
   const h=location.hostname,p=location.pathname;
   if(h.endsWith('.github.io')){return{owner:h.replace('.github.io',''),repo:p.split('/').filter(Boolean)[0]||''};}
@@ -446,7 +454,7 @@ function setupToken(){
 }
 function clearToken(){ghToken=null;localStorage.removeItem(TOKEN_KEY);toast('토큰 제거됨','info');renderAdmin();}
 
-// Exchange rate
+
 async function fetchExchangeRate(){
   try{
     const r=await fetch('https://open.er-api.com/v6/latest/INR');const d=await r.json();
@@ -454,11 +462,12 @@ async function fetchExchangeRate(){
   }catch{renderPriceError();}
 }
 function renderPrice(rate){
-  const pp=INR_TOTAL/MEMBER_COUNT, krwT=Math.round(INR_TOTAL*rate), krwP=Math.round(pp*rate);
+  const ytAmt=(balanceData&&balanceData.charges)?((balanceData.charges.find(c=>c.name.includes('YouTube'))||{}).amount||INR_TOTAL):INR_TOTAL;
+  const pp=ytAmt/MEMBER_COUNT, krwT=Math.round(ytAmt*rate), krwP=Math.round(pp*rate);
   cachedKrwPerPerson=krwP;
   const sidebarHtml=`
     <h3>MONTHLY COST</h3>
-    <div class="price-row"><span class="pk">총액</span><span class="pv">₹${INR_TOTAL}/월</span></div>
+    <div class="price-row"><span class="pk">총액</span><span class="pv">₹${ytAmt}/월</span></div>
     <div class="price-row"><span class="pk">인원</span><span class="pv">${MEMBER_COUNT}명</span></div>
     <div class="price-row"><span class="pk">1인 (₹)</span><span class="pv">₹${pp.toFixed(1)}</span></div>
     <div class="price-row"><span class="pk">환율</span><span class="pv">1₹ = ${rate.toFixed(2)}₩</span></div>
@@ -477,7 +486,7 @@ function renderPriceError(){
   document.getElementById('admin-sidebar-price').innerHTML=h;
 }
 
-// Balance
+
 let balanceData = null;
 const BALANCE_URL = './balance.json';
 
@@ -499,8 +508,7 @@ function calcBalanceForecast(){
   const now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
   let bal=balanceData.amount;
   const events=[];
-  // 3개월치 예측
-  for(let i=0;i<3;i++){
+  for(let i=0;i<4;i++){
     charges.forEach(c=>{
       const m=now.getMonth()+i;
       const y=now.getFullYear()+Math.floor(m/12);
@@ -510,15 +518,16 @@ function calcBalanceForecast(){
     });
   }
   events.sort((a,b)=>a.date-b.date);
-  let insufficientDate=null, insufficientName=null;
+  const forecast=[];
+  let insuffDate=null, insuffName=null;
   events.forEach(e=>{
     bal-=e.amount;
-    if(bal<0&&!insufficientDate){insufficientDate=e.date;insufficientName=e.name;}
+    forecast.push({date:e.date,name:e.name,amount:e.amount,remaining:bal});
+    if(bal<0&&!insuffDate){insuffDate=e.date;insuffName=e.name;}
   });
-  // 다음 결제
   const nextCharge=events[0]||null;
-  const nextInsufficient=balanceData.amount<(nextCharge?nextCharge.amount:0);
-  return{balance:balanceData.amount, updated:balanceData.updated, charges, events, insufficientDate, insufficientName, nextCharge, nextInsufficient};
+  const nextInsuff=balanceData.amount<(nextCharge?nextCharge.amount:0);
+  return{balance:balanceData.amount,updated:balanceData.updated,charges,forecast,insuffDate,insuffName,nextCharge,nextInsuff};
 }
 
 function renderBalance(){
@@ -527,31 +536,64 @@ function renderBalance(){
   const fc=calcBalanceForecast();
   if(!fc){el.innerHTML='<h3>INR BALANCE</h3><div style="color:var(--muted);font-size:14px;text-align:center">데이터 없음</div>';return;}
 
-  const statusClass=fc.nextInsufficient?'critical':fc.insufficientDate?'low':'ok';
+  const statusClass=fc.nextInsuff?'critical':fc.insuffDate?'low':'ok';
   let warningHtml='';
-  if(fc.nextInsufficient){
+  if(fc.nextInsuff){
     warningHtml=`<div class="balance-warning danger">잔액 부족! ${fc.nextCharge.name} ₹${fc.nextCharge.amount} 결제 불가</div>`;
-  }else if(fc.insufficientDate){
-    const dd=fc.insufficientDate;
-    const ds=(dd.getMonth()+1)+'/'+dd.getDate();
-    warningHtml=`<div class="balance-warning warn">${ds} ${fc.insufficientName} 결제 시 잔액 부족 예상</div>`;
+  }else if(fc.insuffDate){
+    const dd=fc.insuffDate;
+    const ds=(dd.getMonth()+1)+'/${dd.getDate()}';
+    warningHtml=`<div class="balance-warning warn">${(dd.getMonth()+1)}/${dd.getDate()} ${fc.insuffName} 결제 시 잔액 부족</div>`;
   }
 
   const chargesHtml=fc.charges.map(c=>{
     const nd=getNextChargeDate(c.day);
-    const ds=(nd.getMonth()+1)+'/'+nd.getDate();
-    return`<div class="balance-charge-row"><span class="bc-name">${c.name} (${ds})</span><span class="bc-val">₹${c.amount}</span></div>`;
+    return`<div class="balance-charge-row"><span class="bc-name">${c.name} (${nd.getMonth()+1}/${nd.getDate()})</span><span class="bc-val">₹${c.amount}</span></div>`;
   }).join('');
 
-  const editHtml=isAdmin?`<div class="balance-edit"><input type="number" id="bal-input" value="${fc.balance}" placeholder="잔액"><button onclick="updateBalance()">저장</button></div>`:'';
+
+  const forecastHtml=fc.forecast.slice(0,4).map(f=>{
+    const ds=(f.date.getMonth()+1)+'/'+f.date.getDate();
+    const amtClass=f.remaining<0?'negative':'';
+    return`<div class="bf-row"><span>${ds} ${f.name}</span><span class="bf-amt ${amtClass}">₹${f.remaining.toLocaleString()}</span></div>`;
+  }).join('');
+
+  let editHtml='';
+  if(isAdmin){
+    const chargeEdits=fc.charges.map((c,i)=>`
+      <div class="bal-field">
+        <label>${c.name} (매월 ${c.day}일)</label>
+        <div class="bal-row">
+          <input type="number" id="charge-amt-${i}" value="${c.amount}" placeholder="₹">
+          <input type="number" id="charge-day-${i}" value="${c.day}" placeholder="일" style="max-width:60px">
+        </div>
+      </div>`).join('');
+    editHtml=`
+      <div class="bal-field"><label>잔액 (₹)</label><div class="bal-row"><input type="number" id="bal-input" value="${fc.balance}"></div></div>
+      ${chargeEdits}
+      <button class="bal-save" onclick="updateBalance()">저장</button>`;
+  }
 
   el.innerHTML=`
     <h3>INR BALANCE</h3>
     <div class="balance-amount ${statusClass}">₹${fc.balance.toLocaleString()}</div>
     <div class="balance-updated">${fc.updated} 기준</div>
     <div class="balance-charges">${chargesHtml}</div>
+    <div class="balance-forecast"><div style="font-weight:600;margin-bottom:6px;color:var(--ink)">결제 예상</div>${forecastHtml}</div>
     ${warningHtml}
     ${editHtml}`;
+
+
+  updateMonthlyCost();
+}
+
+function updateMonthlyCost(){
+  if(!balanceData||!balanceData.charges)return;
+  const yt=balanceData.charges.find(c=>c.name.includes('YouTube'));
+  if(yt){
+
+    window._ytAmount=yt.amount;
+  }
 }
 
 async function updateBalance(){
@@ -559,7 +601,13 @@ async function updateBalance(){
   if(isNaN(v)||v<0){alert('올바른 금액을 입력하세요');return;}
   balanceData.amount=v;
   balanceData.updated=fmtDate(new Date());
-  // GitHub API로 저장
+
+  balanceData.charges.forEach((c,i)=>{
+    const amtEl=document.getElementById('charge-amt-'+i);
+    const dayEl=document.getElementById('charge-day-'+i);
+    if(amtEl)c.amount=parseInt(amtEl.value,10)||c.amount;
+    if(dayEl)c.day=parseInt(dayEl.value,10)||c.day;
+  });
   if(ghToken){
     const info=getRepoInfo();
     if(info&&info.repo){
@@ -569,15 +617,16 @@ async function updateBalance(){
           const f=await g.json();
           const c=btoa(unescape(encodeURIComponent(JSON.stringify(balanceData,null,2)+'\n')));
           const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/balance.json`,{method:'PUT',headers:{'Authorization':'token '+ghToken,'Content-Type':'application/json'},body:JSON.stringify({message:'Update balance',content:c,sha:f.sha})});
-          if(r.ok)toast('잔액 저장 완료','ok');else toast('잔액 저장 실패','err');
+          if(r.ok)toast('저장 완료','ok');else toast('저장 실패','err');
         }
       }catch{toast('네트워크 오류','err');}
     }
-  }
+  }else{toast('토큰이 없어 로컬만 반영','info');}
   renderBalance();
+  fetchExchangeRate();
 }
 
-// Init
+
 async function init(){
   setupToken();
   try{const r=await fetch(DATA_URL+'?t='+Date.now());serverData=await r.json();}catch{serverData=[];}
@@ -597,7 +646,7 @@ async function init(){
   await fetchBalance();renderBalance();
 }
 
-// Utils
+
 function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function addMonths(s,m){const d=new Date(s+'T00:00:00');d.setMonth(d.getMonth()+m);return d;}
 function daysBetween(a,b){const da=new Date(a),db=new Date(b);da.setHours(0,0,0,0);db.setHours(0,0,0,0);return Math.round((db-da)/86400000);}
@@ -616,7 +665,7 @@ function computeStatus(data){
   result.sort((a,b)=>a.daysLeft-b.daysLeft);return result;
 }
 
-// Auth
+
 function tryEnterAdmin(){
   if(!ghToken)return;isAdmin=true;sessionStorage.setItem('yt_admin','1');
   const l=localStorage.getItem(LS_KEY);if(l){payments=JSON.parse(l);hasLocalChanges=true;}else{payments=structuredClone(serverData);}
