@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Premium 결제 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&family=Pretendard&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e5e3dc;
+    --accent: #ff0033;
+    --safe: #2d7a3e;
+    --warn: #c97a00;
+    --danger: #cc1f1f;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Pretendard', 'Fraunces', serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,0,51,0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(45,122,62,0.04) 0%, transparent 40%);
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .title-block h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(32px, 6vw, 56px);
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+  }
+  .title-block h1 .accent { color: var(--accent); font-style: italic; }
+  .title-block p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  .today {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    padding: 8px 14px;
+    background: var(--card);
+  }
+
+  /* summary */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0;
+    border: 1px solid var(--line);
+    margin-bottom: 48px;
+    background: var(--card);
+  }
+  .stat {
+    padding: 20px 24px;
+    border-right: 1px solid var(--line);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .stat .value {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .stat .value small {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  /* section titles */
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* member cards */
+  .members {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 20px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .card.expired { border-color: var(--danger); border-width: 2px; }
+  .card.soon { border-color: var(--warn); border-width: 2px; }
+  .card .status-dot {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .status-dot.safe { background: var(--safe); }
+  .status-dot.soon { background: var(--warn); }
+  .status-dot.expired { background: var(--danger); animation: pulse 1.5s infinite; }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .card .name {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .card .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-top: 1px dashed var(--line);
+    font-size: 14px;
+  }
+  .row:first-of-type { border-top: none; }
+  .row .k { color: var(--muted); }
+  .row .v { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .dday {
+    margin-top: 14px;
+    padding: 10px 14px;
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+  .dday.safe { background: #e8f5eb; color: var(--safe); }
+  .dday.soon { background: #fdf3e0; color: var(--warn); }
+  .dday.expired { background: #fbe8e8; color: var(--danger); }
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .card-actions button {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 8px;
+    border: 1px solid var(--line);
+    background: transparent;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+  }
+  .card-actions button:hover {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .card-actions .del:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+  }
+
+  /* add form */
+  .form-wrap {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 32px;
+    margin-bottom: 48px;
+  }
+  .form-wrap h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  .field label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+    color: #bbb;
+  }
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #555;
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+  .field input:focus {
+    outline: none;
+    border-bottom-color: var(--accent);
+  }
+  .field input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  .btn-add {
+    padding: 12px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.15s ease;
+  }
+  .btn-add:hover { transform: translateX(3px); }
+
+  /* history */
+  .history {
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  .history-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 100px 80px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    align-items: center;
+    gap: 12px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-row .date {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+  }
+  .history-row .who { font-weight: 600; }
+  .history-row .months {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .history-row .del-btn {
+    padding: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    border: 1px solid var(--line);
+    background: transparent;
+    cursor: pointer;
+    color: var(--muted);
+    justify-self: end;
+  }
+  .history-row .del-btn:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  /* footer */
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  footer button:hover { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .history-row { grid-template-columns: 1fr; gap: 4px; }
+    .history-row .months, .history-row .del-btn { text-align: left; justify-self: start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>YouTube <span class="accent">Premium</span><br>결제 장부</h1>
+      <p>Shared Subscription · Payment Tracker</p>
+    </div>
+    <div class="today" id="today"></div>
+  </header>
+
+  <!-- SUMMARY -->
+  <div class="summary-grid" id="summary"></div>
+
+  <!-- MEMBERS -->
+  <div class="section-title">Members · 멤버별 현황</div>
+  <div class="members" id="members"></div>
+
+  <!-- ADD FORM -->
+  <div class="form-wrap">
+    <h2>결제 기록 추가</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>이름</label>
+        <input type="text" id="f-name" placeholder="예: 구구" list="name-list">
+        <datalist id="name-list"></datalist>
+      </div>
+      <div class="field">
+        <label>결제일</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label>개월 수</label>
+        <input type="number" id="f-months" min="1" value="1">
+      </div>
+      <div class="field">
+        <button class="btn-add" onclick="addPayment()">+ 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section-title">History · 전체 기록</div>
+  <div class="history" id="history"></div>
+
+  <footer>
+    <div>Data stored locally in your browser</div>
+    <div>
+      <button onclick="exportData()">Export JSON</button>
+      &nbsp;·&nbsp;
+      <button onclick="importData()">Import JSON</button>
+      &nbsp;·&nbsp;
+      <button onclick="resetData()">Reset all</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'yt_premium_tracker_v1';
+
+// --- initial seed data (from the screenshot) ---
+const SEED = [
+  { id: 'i1', name: '구구',   date: '2025-04-01', months: 12 },
+  { id: 'i2', name: '승준',   date: '2025-11-03', months: 12 },
+  { id: 'i3', name: '준희',   date: '2025-11-03', months: 12 },
+  { id: 'i4', name: '주용',   date: '2026-02-01', months: 12 },
+  { id: 'i5', name: '류동헌', date: '2026-03-01', months: 5  },
+  { id: 'i6', name: '구구',   date: '2026-04-01', months: 15 },
+];
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED));
+    return [...SEED];
+  }
+  try { return JSON.parse(raw); } catch { return [...SEED]; }
+}
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function uid() { return 'p' + Date.now() + Math.random().toString(36).slice(2,6); }
+
+function addMonths(dateStr, months) {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function daysBetween(a, b) {
+  const ms = b.setHours(0,0,0,0) - a.setHours(0,0,0,0);
+  return Math.round(ms / 86400000);
+}
+
+// Per-member status: latest payment + cumulative coverage end
+function memberStatus(payments) {
+  const groups = {};
+  payments.forEach(p => {
+    if (!groups[p.name]) groups[p.name] = [];
+    groups[p.name].push(p);
+  });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const result = [];
+  for (const name in groups) {
+    const list = groups[name].slice().sort((a,b) => a.date.localeCompare(b.date));
+    // coverage: chain payments. Each payment extends coverage from max(payDate, currentCoverEnd) by months
+    let coverEnd = null;
+    let totalMonths = 0;
+    list.forEach(p => {
+      const payDate = new Date(p.date); payDate.setHours(0,0,0,0);
+      const start = (!coverEnd || payDate > coverEnd) ? payDate : coverEnd;
+      coverEnd = addMonths(fmtDate(start), p.months);
+      coverEnd.setHours(0,0,0,0);
+      totalMonths += p.months;
+    });
+    const last = list[list.length-1];
+    const dleft = daysBetween(new Date(), new Date(coverEnd));
+    let state = 'safe';
+    if (dleft < 0) state = 'expired';
+    else if (dleft <= 30) state = 'soon';
+    result.push({
+      name,
+      lastPayDate: last.date,
+      lastPayMonths: last.months,
+      totalMonths,
+      coverEnd: fmtDate(coverEnd),
+      daysLeft: dleft,
+      state,
+      count: list.length
+    });
+  }
+  // sort by daysLeft ascending
+  result.sort((a,b) => a.daysLeft - b.daysLeft);
+  return result;
+}
+
+function render() {
+  const data = load();
+  // today
+  const now = new Date();
+  document.getElementById('today').textContent =
+    `TODAY ${fmtDate(now)} · ${['SUN','MON','TUE','WED','THU','FRI','SAT'][now.getDay()]}`;
+
+  // name datalist
+  const names = [...new Set(data.map(p => p.name))];
+  document.getElementById('name-list').innerHTML =
+    names.map(n => `<option value="${n}">`).join('');
+
+  // members
+  const status = memberStatus(data);
+  const mBox = document.getElementById('members');
+  if (status.length === 0) {
+    mBox.innerHTML = '<div class="empty">NO DATA · 아래에서 결제 기록을 추가하세요</div>';
+  } else {
+    mBox.innerHTML = status.map(s => {
+      const ddayText = s.daysLeft < 0
+        ? `D+${Math.abs(s.daysLeft)} · 만료됨`
+        : s.daysLeft === 0 ? 'D-DAY · 오늘!'
+        : `D-${s.daysLeft}`;
+      return `
+        <div class="card ${s.state === 'safe' ? '' : s.state}">
+          <div class="status-dot ${s.state}"></div>
+          <div class="name">${s.name}</div>
+          <div class="sub">${s.count} payment${s.count>1?'s':''} · ${s.totalMonths}개월 누적</div>
+          <div class="row"><span class="k">마지막 결제</span><span class="v">${s.lastPayDate}</span></div>
+          <div class="row"><span class="k">결제 개월</span><span class="v">${s.lastPayMonths}개월</span></div>
+          <div class="row"><span class="k">커버 만료</span><span class="v">${s.coverEnd}</span></div>
+          <div class="dday ${s.state}">${ddayText}</div>
+          <div class="card-actions">
+            <button onclick="quickAdd('${s.name}')">+ 결제 추가</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // summary stats
+  const total = data.length;
+  const totalMonths = data.reduce((s, p) => s + Number(p.months), 0);
+  const expiredCount = status.filter(s => s.state === 'expired').length;
+  const soonCount = status.filter(s => s.state === 'soon').length;
+  const nextUp = status.filter(s => s.daysLeft >= 0).sort((a,b) => a.daysLeft - b.daysLeft)[0];
+
+  document.getElementById('summary').innerHTML = `
+    <div class="stat"><div class="label">Members</div><div class="value">${status.length}</div></div>
+    <div class="stat"><div class="label">Payments</div><div class="value">${total}<small>건</small></div></div>
+    <div class="stat"><div class="label">Total Months</div><div class="value">${totalMonths}<small>개월</small></div></div>
+    <div class="stat"><div class="label">Next Due</div><div class="value" style="font-size:18px">${nextUp ? nextUp.name + ' · D-' + nextUp.daysLeft : '—'}</div></div>
+    <div class="stat"><div class="label">Alerts</div><div class="value" style="color:${(expiredCount+soonCount)>0?'var(--danger)':'var(--safe)'}">${expiredCount+soonCount}<small>건</small></div></div>
+  `;
+
+  // history (newest first)
+  const sorted = [...data].sort((a,b) => b.date.localeCompare(a.date));
+  const hBox = document.getElementById('history');
+  if (sorted.length === 0) {
+    hBox.innerHTML = '<div class="empty">NO HISTORY</div>';
+  } else {
+    hBox.innerHTML = sorted.map(p => `
+      <div class="history-row">
+        <div class="date">${p.date}</div>
+        <div class="who">${p.name}</div>
+        <div class="months">${p.months}개월치</div>
+        <button class="del-btn" onclick="deletePayment('${p.id}')">DEL</button>
+      </div>
+    `).join('');
+  }
+}
+
+function addPayment() {
+  const name = document.getElementById('f-name').value.trim();
+  const date = document.getElementById('f-date').value;
+  const months = parseInt(document.getElementById('f-months').value, 10);
+  if (!name || !date || !months || months < 1) {
+    alert('이름, 날짜, 개월 수를 모두 입력해주세요');
+    return;
+  }
+  const data = load();
+  data.push({ id: uid(), name, date, months });
+  save(data);
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-months').value = 1;
+  render();
+}
+
+function quickAdd(name) {
+  document.getElementById('f-name').value = name;
+  document.getElementById('f-date').value = fmtDate(new Date());
+  document.getElementById('f-months').focus();
+  window.scrollTo({ top: document.querySelector('.form-wrap').offsetTop - 20, behavior: 'smooth' });
+}
+
+function deletePayment(id) {
+  if (!confirm('이 결제 기록을 삭제할까요?')) return;
+  const data = load().filter(p => p.id !== id);
+  save(data);
+  render();
+}
+
+function resetData() {
+  if (!confirm('모든 데이터를 초기값(스크린샷 기준)으로 되돌릴까요?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  render();
+}
+
+function exportData() {
+  const data = load();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `yt_premium_${fmtDate(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) throw new Error('invalid');
+        if (!confirm(`${imported.length}건을 불러옵니다. 현재 데이터를 덮어쓸까요?`)) return;
+        save(imported);
+        render();
+      } catch {
+        alert('JSON 파일을 읽을 수 없어요');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// set today as default date
+document.getElementById('f-date').value = fmtDate(new Date());
+render();
+</script>
+</body>
+</html>
