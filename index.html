@@ -6,7 +6,7 @@
 <title>YouTube Premium 결제 확인</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #fafaf7;
@@ -25,7 +25,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{
   background:var(--bg);color:var(--ink);
-  font-family:'Pretendard',sans-serif;
+  font-family:'Noto Sans KR',sans-serif;
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
 }
@@ -67,14 +67,14 @@ body{
 }
 .modal-box input:focus{outline:none;border-bottom-color:var(--accent)}
 .modal-box .error{
-  color:var(--accent);font-size:12px;
+  color:var(--accent);font-size:13px;
   margin-top:10px;min-height:18px;
   font-family:'JetBrains Mono',monospace;
 }
 .modal-box button{
   margin-top:20px;padding:12px 32px;
   background:var(--accent);color:white;border:none;
-  font-family:'JetBrains Mono',monospace;font-size:12px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
   text-transform:uppercase;letter-spacing:.2em;
   cursor:pointer;font-weight:600;
 }
@@ -104,7 +104,7 @@ body{
 .pub-header h1 .accent{color:var(--accent);font-style:italic}
 .pub-header .sub{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   margin-top:10px;text-transform:uppercase;
   letter-spacing:.15em;
 }
@@ -114,7 +114,7 @@ body{
 .search-wrap input{
   width:100%;padding:16px 20px 16px 48px;
   border:2px solid var(--line);background:var(--card);
-  font-size:16px;font-family:'Pretendard',sans-serif;
+  font-size:16px;font-family:'Noto Sans KR',sans-serif;
   transition:border-color .2s;
 }
 .search-wrap input:focus{
@@ -162,7 +162,7 @@ body{
 }
 .result-card .r-sub{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.1em;
   margin-bottom:24px;
 }
@@ -177,7 +177,7 @@ body{
 .result-card .dday-big.expired{color:var(--danger)}
 .result-card .dday-label{
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.15em;
   margin-bottom:28px;
 }
@@ -187,7 +187,7 @@ body{
 }
 .result-card .info-item .ik{
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.12em;
   margin-bottom:4px;
 }
@@ -235,17 +235,17 @@ body{
   color:var(--accent);letter-spacing:-.02em;
 }
 .price-card .price-krw small{
-  font-size:12px;color:var(--muted);font-weight:400;
+  font-size:13px;color:var(--muted);font-weight:400;
   font-family:'JetBrains Mono',monospace;margin-left:4px;
 }
 .price-card .price-rate{
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   text-align:right;letter-spacing:.05em;
 }
 .price-card .price-loading{
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--muted);
+  font-size:13px;color:var(--muted);
 }
 
 .pub-footer{
@@ -255,12 +255,12 @@ body{
 }
 .pub-footer .date{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   letter-spacing:.05em;
 }
 .admin-link{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   background:none;border:1px solid var(--line);
   padding:6px 12px;cursor:pointer;
   letter-spacing:.1em;text-transform:uppercase;
@@ -289,7 +289,7 @@ body{
 .admin-header .title-block h1 .accent{color:var(--accent);font-style:italic}
 .admin-header .title-block p{
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   margin-top:8px;text-transform:uppercase;letter-spacing:.15em;
 }
 .admin-header .right-block{
@@ -297,13 +297,13 @@ body{
 }
 .admin-header .today-badge{
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   border:1px solid var(--line);padding:8px 14px;
   background:var(--card);
 }
 .admin-header .logout-btn{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;padding:8px 14px;
+  font-size:13px;padding:8px 14px;
   background:var(--ink);color:var(--bg);
   border:none;cursor:pointer;
   text-transform:uppercase;letter-spacing:.1em;
@@ -315,13 +315,13 @@ body{
   background:var(--ink);color:var(--bg);
   padding:10px 20px;margin-bottom:24px;
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;letter-spacing:.08em;
+  font-size:13px;letter-spacing:.08em;
   display:flex;justify-content:space-between;
   align-items:center;flex-wrap:wrap;gap:8px;
 }
 .admin-bar .local-badge{
   background:var(--accent);color:white;
-  padding:2px 8px;font-size:10px;
+  padding:2px 8px;font-size:13px;
   margin-left:8px;
 }
 
@@ -336,7 +336,7 @@ body{
 .stat:last-child{border-right:none}
 .stat .label{
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;
 }
 .stat .value{
@@ -348,7 +348,7 @@ body{
 /* section title */
 .section-title{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;text-transform:uppercase;
+  font-size:13px;text-transform:uppercase;
   letter-spacing:.25em;color:var(--muted);
   margin-bottom:16px;display:flex;
   align-items:center;gap:12px;
@@ -382,7 +382,7 @@ body{
 }
 .card .c-sub{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em;
 }
 .card .c-row{
@@ -403,7 +403,7 @@ body{
 .card .c-actions{display:flex;gap:6px;margin-top:10px}
 .card .c-actions button{
   flex:1;font-family:'JetBrains Mono',monospace;
-  font-size:10px;letter-spacing:.1em;
+  font-size:13px;letter-spacing:.1em;
   padding:7px;border:1px solid var(--line);
   background:transparent;cursor:pointer;
   text-transform:uppercase;transition:all .15s;
@@ -427,7 +427,7 @@ body{
 }
 .field label{
   display:block;font-family:'JetBrains Mono',monospace;
-  font-size:10px;text-transform:uppercase;
+  font-size:13px;text-transform:uppercase;
   letter-spacing:.15em;margin-bottom:6px;color:#bbb;
 }
 .field input{
@@ -441,7 +441,7 @@ body{
 .btn-add{
   padding:12px 20px;background:var(--accent);
   color:white;border:none;
-  font-family:'JetBrains Mono',monospace;font-size:12px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
   text-transform:uppercase;letter-spacing:.2em;
   cursor:pointer;font-weight:600;transition:transform .15s;
 }
@@ -459,11 +459,11 @@ body{
 .history-row .h-name{font-weight:600}
 .history-row .h-months{
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--muted);text-align:right;
+  font-size:13px;color:var(--muted);text-align:right;
 }
 .history-row .h-del{
   padding:4px 8px;font-family:'JetBrains Mono',monospace;
-  font-size:10px;border:1px solid var(--line);
+  font-size:13px;border:1px solid var(--line);
   background:transparent;cursor:pointer;
   color:var(--muted);justify-self:end;
 }
@@ -471,7 +471,7 @@ body{
 .empty-msg{
   padding:40px;text-align:center;color:var(--muted);
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;letter-spacing:.1em;
+  font-size:13px;letter-spacing:.1em;
 }
 
 /* admin footer */
@@ -479,7 +479,7 @@ body{
   margin-top:40px;padding-top:20px;border-top:1px solid var(--line);
   display:flex;justify-content:space-between;
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;color:var(--muted);
+  font-size:13px;color:var(--muted);
   text-transform:uppercase;letter-spacing:.15em;
   flex-wrap:wrap;gap:12px;
 }
@@ -626,6 +626,7 @@ let payments = [];
 let serverData = [];
 let isAdmin = false;
 let hasLocalChanges = false;
+let cachedKrwPerPerson = null;
 
 // ===================== EXCHANGE RATE =====================
 async function fetchExchangeRate() {
@@ -646,6 +647,7 @@ function renderPrice(rate) {
   const perPerson = INR_TOTAL / MEMBER_COUNT;
   const krwTotal = Math.round(INR_TOTAL * rate);
   const krwPer = Math.round(perPerson * rate);
+  cachedKrwPerPerson = krwPer;
   const html = `
     <div class="price-left">
       <span class="price-total">₹${INR_TOTAL}<small>/월</small></span>
@@ -658,6 +660,9 @@ function renderPrice(rate) {
     </div>`;
   document.getElementById('pub-price').innerHTML = html;
   document.getElementById('admin-price').innerHTML = html;
+  // re-render search result if visible
+  const input = document.getElementById('search-input');
+  if (input && input.value.trim()) doSearch(input.value.trim());
 }
 
 function renderPriceError() {
@@ -959,9 +964,9 @@ function doSearch(name) {
       <div class="dday-big ${found.state}">${ddayNum}</div>
       <div class="dday-label">${ddayLabel}</div>
       <div class="info-grid">
-        <div class="info-item"><div class="ik">마지막 결제</div><div class="iv">${found.lastPayDate}</div></div>
-        <div class="info-item"><div class="ik">결제 개월</div><div class="iv">${found.lastPayMonths}개월</div></div>
+        <div class="info-item"><div class="ik">월 납부금</div><div class="iv">${cachedKrwPerPerson ? '₩'+cachedKrwPerPerson.toLocaleString() : '환율 로딩중...'}</div></div>
         <div class="info-item"><div class="ik">커버 만료</div><div class="iv">${found.coverEnd}</div></div>
+        <div class="info-item"><div class="ik">마지막 결제</div><div class="iv">${found.lastPayDate}</div></div>
         <div class="info-item"><div class="ik">상태</div><div class="iv">${stateLabel}</div></div>
       </div>
       <div class="status-bar ${found.state}">
