@@ -2,8 +2,8 @@ name: D-day Telegram Notification
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 매일 UTC 00:00 (한국시간 09:00)
-  workflow_dispatch: # 수동 실행도 가능
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   check-dday:
@@ -16,77 +16,37 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          TODAY=$(date +%Y-%m-%d)
-          echo "Checking D-day for: $TODAY"
-
-          # Node.js 스크립트로 D-day 체크
-          node -e "
+          MSG=$(node -e "
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
+          const today = new Date(); today.setHours(0,0,0,0);
 
-          const today = new Date();
-          today.setHours(0,0,0,0);
+          function addMonths(s, m) { const d = new Date(s+'T00:00:00'); d.setMonth(d.getMonth()+m); return d; }
 
-          function addMonths(dateStr, months) {
-            const d = new Date(dateStr + 'T00:00:00');
-            d.setMonth(d.getMonth() + months);
-            return d;
-          }
-
-          // 멤버별 만료일 계산
           const groups = {};
-          data.forEach(p => {
-            if (!groups[p.name]) groups[p.name] = [];
-            groups[p.name].push(p);
-          });
+          data.forEach(p => { if(!groups[p.name]) groups[p.name]=[]; groups[p.name].push(p); });
 
-          const alerts = [];
+          const lines = [];
           for (const name in groups) {
             const list = groups[name].sort((a,b) => a.date.localeCompare(b.date));
             let coverEnd = null;
             list.forEach(p => {
-              const payDate = new Date(p.date + 'T00:00:00');
-              const start = (!coverEnd || payDate > coverEnd) ? payDate : coverEnd;
-              coverEnd = addMonths(start.toISOString().slice(0,10), p.months);
+              const pd = new Date(p.date+'T00:00:00');
+              const st = (!coverEnd || pd > coverEnd) ? pd : coverEnd;
+              coverEnd = addMonths(st.toISOString().slice(0,10), p.months);
               coverEnd.setHours(0,0,0,0);
             });
-            const daysLeft = Math.round((coverEnd - today) / 86400000);
-
-            if (daysLeft < 0) {
-              alerts.push('⚫ ' + name + ' — ' + Math.abs(daysLeft) + '일 초과');
-            } else if (daysLeft === 0) {
-              alerts.push('🔴 ' + name + ' — 오늘 만료!');
-            } else if (daysLeft <= 7) {
-              alerts.push('🟡 ' + name + ' — ' + daysLeft + '일 남음');
-            } else {
-              alerts.push('🟢 ' + name + ' — D-' + daysLeft);
-            }
+            const dl = Math.round((coverEnd - today) / 86400000);
+            if (dl < 0) lines.push(name + ' : ' + Math.abs(dl) + '일 초과');
+            else if (dl === 0) lines.push(name + ' : 오늘 만료!');
+            else if (dl <= 7) lines.push(name + ' : ' + dl + '일 남음');
+            else lines.push(name + ' : D-' + dl);
           }
+          console.log('YouTube Premium 결제 현황\n\n' + lines.join('\n'));
+          ")
 
-          if (alerts.length > 0) {
-            const msg = '📢 YouTube Premium 결제 현황\n\n' + alerts.join('\n');
-            const token = process.env.TELEGRAM_BOT_TOKEN;
-            const chatId = process.env.TELEGRAM_CHAT_ID;
+          echo "$MSG"
 
-            if (!token || !chatId) {
-              console.log('Telegram credentials not set');
-              console.log(msg);
-              process.exit(0);
-            }
-
-            const https = require('https');
-            const postData = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' });
-            const req = https.request({
-              hostname: 'api.telegram.org',
-              path: '/bot' + token + '/sendMessage',
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            }, res => {
-              console.log('Telegram status:', res.statusCode);
-            });
-            req.write(postData);
-            req.end();
-          } else {
-            console.log('No alerts today');
-          }
-          "
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="${MSG}"
