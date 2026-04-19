@@ -213,6 +213,41 @@ body{
   font-size:13px;letter-spacing:.05em;
 }
 
+/* price card */
+.price-card{
+  background:var(--card);border:1px solid var(--line);
+  padding:20px 24px;margin-bottom:32px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;
+}
+.price-card .price-left{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.price-card .price-total{
+  font-family:'Fraunces',serif;font-size:22px;font-weight:700;
+  letter-spacing:-.02em;
+}
+.price-card .price-total small{font-size:13px;color:var(--muted);font-weight:400}
+.price-card .price-arrow{color:var(--muted);font-size:16px}
+.price-card .price-per{
+  font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted);
+}
+.price-card .price-krw{
+  font-family:'Fraunces',serif;font-size:28px;font-weight:800;
+  color:var(--accent);letter-spacing:-.02em;
+}
+.price-card .price-krw small{
+  font-size:12px;color:var(--muted);font-weight:400;
+  font-family:'JetBrains Mono',monospace;margin-left:4px;
+}
+.price-card .price-rate{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--muted);
+  text-align:right;letter-spacing:.05em;
+}
+.price-card .price-loading{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;color:var(--muted);
+}
+
 .pub-footer{
   margin-top:auto;padding-top:40px;
   display:flex;justify-content:space-between;
@@ -492,6 +527,10 @@ body{
     <div class="sub">Payment Status Check</div>
   </div>
 
+  <div class="price-card" id="pub-price">
+    <span class="price-loading">환율 불러오는 중...</span>
+  </div>
+
   <div class="search-wrap">
     <span class="search-icon">&#9906;</span>
     <input type="text" id="search-input" placeholder="이름을 입력하세요" autocomplete="off">
@@ -525,6 +564,10 @@ body{
   </div>
 
   <div class="summary-grid" id="summary"></div>
+
+  <div class="price-card" id="admin-price">
+    <span class="price-loading">환율 불러오는 중...</span>
+  </div>
 
   <div class="section-title">Members</div>
   <div class="members" id="members"></div>
@@ -575,12 +618,53 @@ body{
 const ADMIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
 const DATA_URL = './data.json';
 const LS_KEY = 'yt_premium_admin_v2';
+const INR_TOTAL = 389;
+const MEMBER_COUNT = 6;
 
 // ===================== STATE =====================
 let payments = [];
 let serverData = [];
 let isAdmin = false;
 let hasLocalChanges = false;
+
+// ===================== EXCHANGE RATE =====================
+async function fetchExchangeRate() {
+  try {
+    const resp = await fetch('https://open.er-api.com/v6/latest/INR');
+    const data = await resp.json();
+    if (data.result === 'success' && data.rates && data.rates.KRW) {
+      renderPrice(data.rates.KRW);
+    } else {
+      renderPriceError();
+    }
+  } catch {
+    renderPriceError();
+  }
+}
+
+function renderPrice(rate) {
+  const perPerson = INR_TOTAL / MEMBER_COUNT;
+  const krwTotal = Math.round(INR_TOTAL * rate);
+  const krwPer = Math.round(perPerson * rate);
+  const html = `
+    <div class="price-left">
+      <span class="price-total">₹${INR_TOTAL}<small>/월</small></span>
+      <span class="price-arrow">&rarr;</span>
+      <span class="price-per">÷ ${MEMBER_COUNT}명 = ₹${perPerson.toFixed(1)}/인</span>
+    </div>
+    <div style="text-align:right">
+      <div class="price-krw">₩${krwPer.toLocaleString()}<small>/인·월</small></div>
+      <div class="price-rate">1 INR = ${rate.toFixed(2)} KRW · 총 ₩${krwTotal.toLocaleString()}/월</div>
+    </div>`;
+  document.getElementById('pub-price').innerHTML = html;
+  document.getElementById('admin-price').innerHTML = html;
+}
+
+function renderPriceError() {
+  const html = '<span class="price-loading">환율 정보를 불러올 수 없습니다</span>';
+  document.getElementById('pub-price').innerHTML = html;
+  document.getElementById('admin-price').innerHTML = html;
+}
 
 // ===================== INIT =====================
 async function init() {
@@ -622,6 +706,7 @@ async function init() {
   document.getElementById('pub-date').textContent = dateStr;
 
   setupSearch();
+  fetchExchangeRate();
 }
 
 // ===================== DATE UTILS =====================
