@@ -664,7 +664,7 @@ async function fetchFile(file){
     try{
       const headers=ghToken?{'Authorization':'token '+ghToken}:{};
       const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${file}`,{headers});
-      if(r.ok){const d=await r.json();return JSON.parse(atob(d.content));}
+      if(r.ok){const d=await r.json();return JSON.parse(decodeURIComponent(escape(atob(d.content))));}
     }catch{}
   }
   const r=await fetch('./'+file+'?t='+Date.now());
