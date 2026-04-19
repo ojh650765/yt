@@ -19,14 +19,15 @@ jobs:
           MSG=$(node -e "
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
-          const today = new Date(); today.setHours(0,0,0,0);
+          const now = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
           function addMonths(s, m) { const d = new Date(s+'T00:00:00'); d.setMonth(d.getMonth()+m); return d; }
 
           const groups = {};
           data.forEach(p => { if(!groups[p.name]) groups[p.name]=[]; groups[p.name].push(p); });
 
-          const lines = [];
+          const members = [];
           for (const name in groups) {
             const list = groups[name].sort((a,b) => a.date.localeCompare(b.date));
             let coverEnd = null;
@@ -36,12 +37,15 @@ jobs:
               coverEnd = addMonths(st.toISOString().slice(0,10), p.months);
               coverEnd.setHours(0,0,0,0);
             });
-            const dl = Math.round((coverEnd - today) / 86400000);
-            if (dl < 0) lines.push(name + ' : ' + Math.abs(dl) + '일 초과');
-            else if (dl === 0) lines.push(name + ' : 오늘 만료!');
-            else if (dl <= 7) lines.push(name + ' : ' + dl + '일 남음');
-            else lines.push(name + ' : D-' + dl);
+            members.push({ name, dl: Math.round((coverEnd - today) / 86400000) });
           }
+          members.sort((a,b) => a.dl - b.dl);
+
+          const lines = members.map(m => {
+            if (m.dl < 0) return '⚫ ' + m.name + ' — ' + Math.abs(m.dl) + '일 초과';
+            if (m.dl === 0) return '🔴 ' + m.name + ' — 오늘 만료!';
+            return '🟢 ' + m.name + ' — D-' + m.dl;
+          });
           console.log('YouTube Premium 결제 현황\n\n' + lines.join('\n'));
           ")
 
