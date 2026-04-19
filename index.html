@@ -272,6 +272,16 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 .h-del:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
 .empty-msg{padding:40px;text-align:center;color:var(--muted);font-size:16px}
 
+.save-btn{
+  display:block;width:100%;padding:16px;margin-bottom:20px;
+  background:var(--accent);color:var(--bg);border:none;border-radius:12px;
+  font-family:var(--ff);font-size:18px;font-weight:700;
+  cursor:pointer;transition:opacity .2s;
+}
+.save-btn:hover{opacity:.85}
+.save-btn.has-changes{animation:savePulse 2s infinite}
+@keyframes savePulse{0%,100%{opacity:1}50%{opacity:.7}}
+
 .admin-footer{padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:15px;color:var(--muted);flex-wrap:wrap;gap:10px}
 .admin-footer button{background:none;border:none;color:var(--muted);font-family:var(--ff);font-size:15px;cursor:pointer;text-decoration:underline}
 .admin-footer button:hover{color:var(--accent)}
@@ -413,6 +423,8 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 
     <div class="section-title">History</div>
     <div class="history" id="history"></div>
+
+    <button class="save-btn" id="save-btn" onclick="saveToGitHub()" style="display:none">GitHub에 저장</button>
 
     <div class="admin-footer">
       <div id="footer-token-info"></div>
@@ -769,20 +781,32 @@ function renderAdmin(){
   const sorted=[...payments].sort((a,b)=>b.date.localeCompare(a.date)),hBox=document.getElementById('history');
   if(!sorted.length){hBox.innerHTML='<div class="empty-msg">NO HISTORY</div>';}
   else{hBox.innerHTML=sorted.map(p=>`<div class="history-row"><div class="h-date">${p.date}</div><div class="h-name">${esc(p.name)}</div><div class="h-months">${p.months}개월</div><button class="h-del" onclick="deletePayment('${p.id}')">DEL</button></div>`).join('');}
-  document.getElementById('footer-token-info').textContent=ghToken?'GitHub 연동됨 · 자동 저장':'Token 미설정 · Export 수동 저장';
+  const saveBtn=document.getElementById('save-btn');
+  if(ghToken&&hasLocalChanges){saveBtn.style.display='block';saveBtn.classList.add('has-changes');}
+  else{saveBtn.style.display='none';saveBtn.classList.remove('has-changes');}
+  document.getElementById('footer-token-info').textContent=ghToken?(hasLocalChanges?'저장되지 않은 변경사항 있음':'GitHub 연동됨'):'Token 미설정 · Export 수동 저장';
 }
 
-// Admin actions
-async function saveAndSync(){localStorage.setItem(LS_KEY,JSON.stringify(payments));hasLocalChanges=true;if(ghToken)await ghCommitData(payments);renderAdmin();}
-async function addPayment(){
+function markChanged(){
+  localStorage.setItem(LS_KEY,JSON.stringify(payments));
+  hasLocalChanges=true;
+  renderAdmin();
+}
+async function saveToGitHub(){
+  if(!ghToken){toast('토큰이 없습니다','err');return;}
+  const ok=await ghCommitData(payments);
+  if(ok){hasLocalChanges=false;renderAdmin();}
+}
+function addPayment(){
   const n=document.getElementById('f-name').value.trim(),d=document.getElementById('f-date').value,m=parseInt(document.getElementById('f-months').value,10);
   if(!n||!d||!m||m<1){alert('이름, 날짜, 개월 수를 모두 입력해주세요');return;}
-  payments.push({id:uid(),name:n,date:d,months:m});document.getElementById('f-name').value='';document.getElementById('f-months').value=1;await saveAndSync();
+  payments.push({id:uid(),name:n,date:d,months:m});document.getElementById('f-name').value='';document.getElementById('f-months').value=1;markChanged();
 }
 function quickAdd(name){document.getElementById('f-name').value=name;document.getElementById('f-date').value=fmtDate(new Date());document.getElementById('f-months').focus();document.querySelector('.form-wrap').scrollIntoView({behavior:'smooth',block:'center'});}
-async function deletePayment(id){if(!confirm('이 결제 기록을 삭제할까요?'))return;payments=payments.filter(p=>p.id!==id);await saveAndSync();}
+function deletePayment(id){if(!confirm('이 결제 기록을 삭제할까요?'))return;payments=payments.filter(p=>p.id!==id);markChanged();}
 function resetData(){if(!confirm('모든 데이터를 서버 원본으로 되돌릴까요?'))return;payments=structuredClone(serverData);localStorage.removeItem(LS_KEY);hasLocalChanges=false;renderAdmin();}
 function exportData(){const b=new Blob([JSON.stringify(payments,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='data.json';a.click();URL.revokeObjectURL(u);}
+window.addEventListener('beforeunload',e=>{if(hasLocalChanges){e.preventDefault();}})
 
 init();
 </script>
