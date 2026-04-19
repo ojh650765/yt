@@ -433,7 +433,7 @@ function renderPrice(rate){
     <div class="price-row"><span class="pk">1인 (₹)</span><span class="pv">₹${pp.toFixed(1)}</span></div>
     <div class="price-row"><span class="pk">환율</span><span class="pv">1₹ = ${rate.toFixed(2)}₩</span></div>
     <div class="price-highlight">
-      <div class="big">₩${(Math.round(krwP/100)*100).toLocaleString()}<small>/월</small></div>
+      <div class="big">₩${(Math.floor(krwP/10)*10).toLocaleString()}<small>/월</small></div>
       <div class="sub">1인 월 납부금</div>
     </div>`;
   document.getElementById('sidebar-price').innerHTML=sidebarHtml;
@@ -533,7 +533,7 @@ function doSearch(name){
     <div class="dday-big ${found.state}">${dn}</div>
     <div class="dday-label">${dl}</div>
     <div class="info-grid">
-      <div class="info-item"><div class="ik">월 납부금</div><div class="iv">${cachedKrwPerPerson?'₩'+(Math.round(cachedKrwPerPerson/100)*100).toLocaleString():'로딩중...'}</div></div>
+      <div class="info-item"><div class="ik">월 납부금</div><div class="iv">${cachedKrwPerPerson?'₩'+(Math.floor(cachedKrwPerPerson/10)*10).toLocaleString():'로딩중...'}</div></div>
       <div class="info-item"><div class="ik">커버 만료</div><div class="iv">${found.coverEnd}</div></div>
       <div class="info-item"><div class="ik">마지막 결제</div><div class="iv">${found.lastPayDate}</div></div>
       <div class="info-item"><div class="ik">상태</div><div class="iv">${sl}</div></div>
