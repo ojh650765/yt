@@ -802,7 +802,7 @@ function markChanged(){
 async function saveToGitHub(){
   if(!ghToken){toast('토큰이 없습니다','err');return;}
   const ok=await ghCommitData(payments);
-  if(ok){hasLocalChanges=false;renderAdmin();}
+  if(ok){hasLocalChanges=false;localStorage.removeItem(LS_KEY);renderAdmin();}
 }
 function addPayment(){
   const n=document.getElementById('f-name').value.trim(),d=document.getElementById('f-date').value,m=parseInt(document.getElementById('f-months').value,10);
