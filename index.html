@@ -63,19 +63,19 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
   margin:0 auto 12px;font-size:28px;color:#fff;
 }
 .sidebar .logo h2{
-  font-family:var(--ff-en);font-size:18px;font-weight:600;
+  font-family:var(--ff-en);font-size:20px;font-weight:600;
 }
 .sidebar .logo h2 .accent{color:var(--accent)}
-.sidebar .logo p{font-size:12px;color:var(--muted);margin-top:4px}
+.sidebar .logo p{font-size:14px;color:var(--muted);margin-top:4px}
 
 .sidebar .sep{height:1px;background:var(--border);margin:20px 0}
 
 .sidebar .price-section h3{
-  font-size:12px;color:var(--muted);letter-spacing:.1em;margin-bottom:12px;
+  font-size:14px;color:var(--muted);letter-spacing:.1em;margin-bottom:12px;
 }
 .sidebar .price-row{
   display:flex;justify-content:space-between;align-items:center;
-  padding:9px 0;font-size:15px;
+  padding:10px 0;font-size:16px;
 }
 .sidebar .price-row .pk{color:var(--muted)}
 .sidebar .price-row .pv{font-family:var(--ff-en);font-weight:600}
@@ -91,20 +91,20 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 .sidebar .price-highlight .sub{font-size:14px;color:var(--muted);margin-top:6px}
 
 .sidebar .date-info{
-  font-size:13px;color:var(--muted);text-align:center;margin-top:16px;
+  font-size:16px;color:var(--muted);text-align:center;margin-top:16px;
 }
 
 .sidebar .admin-link{
   display:block;width:100%;margin-top:16px;padding:10px;
   background:transparent;border:1px solid var(--border);border-radius:10px;
-  color:var(--muted);font-family:var(--ff);font-size:13px;
+  color:var(--muted);font-family:var(--ff);font-size:15px;
   cursor:pointer;text-align:center;transition:all .2s;
 }
 .sidebar .admin-link:hover{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 .sidebar .logout-btn{
   display:block;width:100%;margin-top:8px;padding:10px;
   background:transparent;border:1px solid var(--border);border-radius:10px;
-  color:var(--danger);font-family:var(--ff);font-size:13px;
+  color:var(--danger);font-family:var(--ff);font-size:15px;
   cursor:pointer;text-align:center;transition:all .2s;
 }
 .sidebar .logout-btn:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
@@ -116,9 +116,9 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
   box-shadow:var(--shadow);
 }
 
-.page-title{font-size:24px;font-weight:700;margin-bottom:8px}
+.page-title{font-size:30px;font-weight:700;margin-bottom:8px}
 .page-title .accent{color:var(--accent)}
-.page-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.page-sub{font-size:16px;color:var(--muted);margin-bottom:28px}
 
 /* search */
 .search-wrap{position:relative;margin-bottom:28px}
@@ -150,11 +150,11 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 .result-card .dday-big.safe{color:var(--safe)}
 .result-card .dday-big.soon{color:var(--warn)}
 .result-card .dday-big.expired{color:var(--danger)}
-.result-card .dday-label{font-size:16px;color:var(--muted);margin-bottom:32px}
+.result-card .dday-label{font-size:18px;color:var(--muted);margin-bottom:32px}
 .result-card .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:left}
-.result-card .info-item .ik{font-size:14px;color:var(--muted);margin-bottom:6px}
-.result-card .info-item .iv{font-family:var(--ff-en);font-size:20px;font-weight:600}
-.result-card .status-bar{margin-top:28px;padding:14px 18px;border-radius:10px;font-size:16px;font-weight:600}
+.result-card .info-item .ik{font-size:15px;color:var(--muted);margin-bottom:6px}
+.result-card .info-item .iv{font-family:var(--ff-en);font-size:22px;font-weight:600}
+.result-card .status-bar{margin-top:28px;padding:16px 20px;border-radius:10px;font-size:17px;font-weight:600}
 .status-bar.safe{background:var(--safe-bg);color:var(--safe)}
 .status-bar.soon{background:var(--warn-bg);color:var(--warn)}
 .status-bar.expired{background:var(--danger-bg);color:var(--danger);animation:pulse 1.5s infinite}
@@ -165,18 +165,18 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 .admin-bar{
   background:var(--bg-card2);border:1px solid var(--border);
   border-radius:12px;padding:12px 18px;margin-bottom:24px;
-  font-size:13px;color:var(--muted);display:flex;
+  font-size:15px;color:var(--muted);display:flex;
   justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
 }
-.local-badge{background:var(--accent);color:var(--bg);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;margin-left:8px}
+.local-badge{background:var(--accent);color:var(--bg);padding:3px 10px;border-radius:6px;font-size:13px;font-weight:600;margin-left:8px}
 
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
 .stat{background:var(--bg-card2);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
-.stat .label{font-size:12px;color:var(--muted);margin-bottom:6px}
-.stat .value{font-family:var(--ff-en);font-size:26px;font-weight:600;color:var(--accent)}
-.stat .value small{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+.stat .label{font-size:14px;color:var(--muted);margin-bottom:6px}
+.stat .value{font-family:var(--ff-en);font-size:30px;font-weight:600;color:var(--accent)}
+.stat .value small{font-size:15px;color:var(--muted);font-weight:400;margin-left:4px}
 
-.section-title{font-size:14px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:12px;font-weight:500}
+.section-title{font-size:16px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:12px;font-weight:500}
 .section-title::after{content:"";flex:1;height:1px;background:var(--border)}
 
 .members{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px}
@@ -188,42 +188,42 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 .dot-safe{background:var(--safe)}
 .dot-soon{background:var(--warn)}
 .dot-expired{background:var(--danger);animation:pulse 1.5s infinite}
-.card .c-name{font-size:20px;font-weight:700;margin-bottom:2px}
-.card .c-sub{font-size:13px;color:var(--muted);margin-bottom:12px}
-.card .c-row{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--border);font-size:14px}
+.card .c-name{font-size:24px;font-weight:700;margin-bottom:4px}
+.card .c-sub{font-size:15px;color:var(--muted);margin-bottom:14px}
+.card .c-row{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border);font-size:16px}
 .card .c-row:first-of-type{border-top:none}
 .card .c-row .ck{color:var(--muted)}
 .card .c-row .cv{font-family:var(--ff-en);font-weight:600}
-.c-dday{margin-top:12px;padding:10px;border-radius:10px;font-size:17px;font-weight:700;text-align:center}
+.c-dday{margin-top:12px;padding:12px;border-radius:10px;font-size:20px;font-weight:700;text-align:center}
 .c-dday.safe{background:var(--safe-bg);color:var(--safe)}
 .c-dday.soon{background:var(--warn-bg);color:var(--warn)}
 .c-dday.expired{background:var(--danger-bg);color:var(--danger)}
 .card .c-actions{margin-top:10px}
-.card .c-actions button{width:100%;font-family:var(--ff);font-size:13px;padding:8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;transition:all .15s}
+.card .c-actions button{width:100%;font-family:var(--ff);font-size:15px;padding:10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;transition:all .15s}
 .card .c-actions button:hover{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 
 .form-wrap{background:var(--bg-card2);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:28px}
-.form-wrap h2{font-size:18px;font-weight:600;margin-bottom:16px;color:var(--accent)}
+.form-wrap h2{font-size:22px;font-weight:600;margin-bottom:16px;color:var(--accent)}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end}
-.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-.field input{width:100%;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--ff);font-size:15px}
+.field label{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+.field input{width:100%;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--ink);font-family:var(--ff);font-size:16px}
 .field input:focus{outline:none;border-color:var(--accent)}
 .field input::-webkit-calendar-picker-indicator{filter:invert(1)}
-.btn-add{padding:10px 18px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-family:var(--ff);font-size:14px;font-weight:600;cursor:pointer}
+.btn-add{padding:12px 20px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-family:var(--ff);font-size:16px;font-weight:600;cursor:pointer}
 .btn-add:hover{opacity:.85}
 
 .history{background:var(--bg-card2);border:1px solid var(--border);border-radius:16px;margin-bottom:24px;overflow:hidden}
-.history-row{display:grid;grid-template-columns:120px 1fr 80px 60px;padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;align-items:center;gap:10px}
+.history-row{display:grid;grid-template-columns:140px 1fr 90px 70px;padding:14px 20px;border-bottom:1px solid var(--border);font-size:16px;align-items:center;gap:10px}
 .history-row:last-child{border-bottom:none}
 .h-date{color:var(--muted)}
 .h-name{font-weight:600}
 .h-months{color:var(--muted);text-align:right}
-.h-del{padding:5px 8px;font-family:var(--ff);font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;justify-self:end}
+.h-del{padding:6px 10px;font-family:var(--ff);font-size:14px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;justify-self:end}
 .h-del:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
-.empty-msg{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+.empty-msg{padding:40px;text-align:center;color:var(--muted);font-size:16px}
 
-.admin-footer{padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:10px}
-.admin-footer button{background:none;border:none;color:var(--muted);font-family:var(--ff);font-size:13px;cursor:pointer;text-decoration:underline}
+.admin-footer{padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:15px;color:var(--muted);flex-wrap:wrap;gap:10px}
+.admin-footer button{background:none;border:none;color:var(--muted);font-family:var(--ff);font-size:15px;cursor:pointer;text-decoration:underline}
 .admin-footer button:hover{color:var(--accent)}
 
 /* toast */
@@ -277,7 +277,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 
     <div class="price-section" id="sidebar-price">
       <h3>MONTHLY COST</h3>
-      <div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0">환율 불러오는 중...</div>
+      <div style="text-align:center;color:var(--muted);font-size:15px;padding:12px 0">환율 불러오는 중...</div>
     </div>
 
     <div class="sep"></div>
@@ -315,7 +315,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 
     <div class="price-section" id="admin-sidebar-price">
       <h3>MONTHLY COST</h3>
-      <div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0">환율 불러오는 중...</div>
+      <div style="text-align:center;color:var(--muted);font-size:15px;padding:12px 0">환율 불러오는 중...</div>
     </div>
 
     <div class="sep"></div>
@@ -442,7 +442,7 @@ function renderPrice(rate){
   if(input&&input.value.trim())doSearch(input.value.trim());
 }
 function renderPriceError(){
-  const h='<h3>MONTHLY COST</h3><div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0">환율 정보를 불러올 수 없습니다</div>';
+  const h='<h3>MONTHLY COST</h3><div style="text-align:center;color:var(--muted);font-size:15px;padding:12px 0">환율 정보를 불러올 수 없습니다</div>';
   document.getElementById('sidebar-price').innerHTML=h;
   document.getElementById('admin-sidebar-price').innerHTML=h;
 }
@@ -560,7 +560,7 @@ function renderAdmin(){
     <div class="stat"><div class="label">Members</div><div class="value">${status.length}</div></div>
     <div class="stat"><div class="label">Payments</div><div class="value">${total}<small>건</small></div></div>
     <div class="stat"><div class="label">Total</div><div class="value">${tm}<small>개월</small></div></div>
-    <div class="stat"><div class="label">Next Due</div><div class="value" style="font-size:15px">${nu?esc(nu.name)+' D-'+nu.daysLeft:'—'}</div></div>
+    <div class="stat"><div class="label">Next Due</div><div class="value" style="font-size:18px">${nu?esc(nu.name)+' D-'+nu.daysLeft:'—'}</div></div>
     <div class="stat"><div class="label">Alerts</div><div class="value" style="color:${(ec+sc)>0?'var(--danger)':'var(--safe)'}">${ec+sc}<small>건</small></div></div>`;
   const mBox=document.getElementById('members');
   if(!status.length){mBox.innerHTML='<div class="empty-msg">NO DATA</div>';}
