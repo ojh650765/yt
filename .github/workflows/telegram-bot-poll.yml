@@ -1,11 +1,12 @@
 name: Telegram Bot Polling
 
 on:
-  # 5분마다 폴링
   schedule:
     - cron: '*/5 * * * *'
-  # 수동 실행
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   poll:
@@ -23,7 +24,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           DATA_PATH: data.json
         run: python telegram_bot.py
