@@ -2,19 +2,28 @@
 Telegram Bot for YouTube Premium Payment Tracker
 -------------------------------------------------
 GitHub Actions에서 schedule(폴링)로 실행됩니다.
+한 줄 명령어로 동작 — 폴링 1회에 처리 완료.
 
-동작 흐름:
-1. Telegram getUpdates로 새 메시지/콜백 확인
-2. 인라인 키보드 버튼으로 이름 → 개월 수 선택
-3. 확인되면 data.json을 GitHub API로 업데이트 + 커밋
-4. 결과를 Telegram으로 응답
+명령어:
+  /add 이름 개월수          결제 추가 (오늘 날짜)
+  /add 이름 개월수 날짜     결제 추가 (날짜 지정)
+  /del 이름                 마지막 결제 삭제
+  /status                   전체 현황
+  /members                  등록된 멤버 목록
+  /help                     도움말
+
+예시:
+  /add 구회원 3
+  /add 류동헌 5 2026-03-01
+  /del 구회원
+  /status
 
 환경변수:
   TELEGRAM_BOT_TOKEN  - Telegram Bot API 토큰
-  TELEGRAM_CHAT_ID    - 허용할 채팅 ID (쉼표 구분으로 여러개 가능)
-  GH_TOKEN            - GitHub Personal Access Token (repo 권한)
-  GH_REPO             - owner/repo 형식 (예: myuser/yt-premium)
-  DATA_PATH            - JSON 파일 경로 (기본: data.json)
+  TELEGRAM_CHAT_ID    - 허용할 채팅 ID (쉼표 구분)
+  GH_TOKEN            - GitHub Token (github.token)
+  GH_REPO             - owner/repo
+  DATA_PATH           - JSON 파일 경로 (기본: data.json)
 """
 
 import os
@@ -30,18 +39,15 @@ from datetime import datetime, date, timezone, timedelta
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ALLOWED_CHATS = [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split(",") if c.strip()]
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
-GH_REPO = os.environ.get("GH_REPO", "")  # owner/repo
+GH_REPO = os.environ.get("GH_REPO", "")
 DATA_PATH = os.environ.get("DATA_PATH", "data.json")
-OFFSET_FILE = "/tmp/tg_offset.txt"  # Actions에서 offset 유지용
 
 KST = timezone(timedelta(hours=9))
 
-# ─── 멤버 목록 (data.json에서 동적으로도 읽지만 버튼용 기본값) ───
-# 실행 시 data.json에서 자동 로드됩니다.
 
+# ─── API helpers ───
 
 def tg_api(method, data=None):
-    """Telegram Bot API 호출"""
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
     if data:
         body = json.dumps(data).encode("utf-8")
@@ -52,13 +58,11 @@ def tg_api(method, data=None):
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        print(f"TG API error: {e.code} {err}")
-        return {"ok": False, "error": err}
+        print(f"TG API error: {e.code} {e.read().decode()}")
+        return {"ok": False}
 
 
 def gh_api(endpoint, method="GET", data=None):
-    """GitHub REST API 호출"""
     url = f"https://api.github.com/repos/{GH_REPO}/{endpoint}"
     body = json.dumps(data).encode("utf-8") if data else None
     req = urllib.request.Request(url, data=body, method=method)
@@ -70,37 +74,55 @@ def gh_api(endpoint, method="GET", data=None):
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
-        err = e.read().decode()
-        print(f"GH API error: {e.code} {err}")
+        print(f"GH API error: {e.code} {e.read().decode()}")
         return None
 
 
-# ─── data.json 읽기/쓰기 ───
+def send_msg(chat_id, text):
+    return tg_api("sendMessage", {"chat_id": chat_id, "text": text, "parse_mode": "HTML"})
+
+
+# ─── data.json ───
 
 def load_data():
-    """GitHub에서 data.json 읽기"""
     result = gh_api(f"contents/{DATA_PATH}")
     if not result or "content" not in result:
-        print("Failed to load data.json from GitHub")
         return [], None
     content = base64.b64decode(result["content"]).decode("utf-8")
     return json.loads(content), result["sha"]
 
 
-def save_data(payments, sha, commit_msg="Update payment via Telegram bot"):
-    """GitHub에 data.json 커밋"""
+def save_data(payments, sha, commit_msg):
     content = base64.b64encode(
         (json.dumps(payments, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     ).decode("ascii")
     result = gh_api(f"contents/{DATA_PATH}", method="PUT", data={
-        "message": commit_msg,
-        "content": content,
-        "sha": sha,
+        "message": commit_msg, "content": content, "sha": sha,
     })
     return result is not None
 
 
-# ─── 상태 계산 ───
+# ─── offset (GitHub 저장) ───
+
+def load_offset():
+    result = gh_api("contents/.tg_offset")
+    if result and "content" in result:
+        try:
+            return int(base64.b64decode(result["content"]).decode().strip()), result["sha"]
+        except ValueError:
+            pass
+    return 0, None
+
+
+def save_offset(offset, sha=None):
+    content = base64.b64encode(str(offset).encode()).decode("ascii")
+    data = {"message": "Update telegram bot offset", "content": content}
+    if sha:
+        data["sha"] = sha
+    gh_api("contents/.tg_offset", method="PUT", data=data)
+
+
+# ─── 계산 ───
 
 def add_months(d, months):
     total = d.month - 1 + months
@@ -108,8 +130,7 @@ def add_months(d, months):
     month = total % 12 + 1
     max_days = [31, 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28,
                 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    day = min(d.day, max_days[month - 1])
-    return date(year, month, day)
+    return date(year, month, min(d.day, max_days[month - 1]))
 
 
 def compute_status(payments):
@@ -131,329 +152,264 @@ def compute_status(payments):
         days_left = (cover_end - today).days
         state = "expired" if days_left < 0 else ("soon" if days_left <= 30 else "safe")
         result.append({
-            "name": name,
-            "cover_end": cover_end.isoformat(),
-            "days_left": days_left,
-            "state": state,
+            "name": name, "cover_end": cover_end.isoformat(),
+            "days_left": days_left, "state": state,
             "total_months": total_months,
-            "last_date": last["date"],
-            "last_months": last["months"],
+            "last_date": last["date"], "last_months": last["months"],
         })
     result.sort(key=lambda x: x["days_left"])
     return result
 
 
-# ─── Telegram 메시지/키보드 ───
-
-def send_msg(chat_id, text, reply_markup=None, parse_mode="HTML"):
-    data = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
-    if reply_markup:
-        data["reply_markup"] = reply_markup
-    return tg_api("sendMessage", data)
-
-
-def edit_msg(chat_id, msg_id, text, reply_markup=None):
-    data = {"chat_id": chat_id, "message_id": msg_id, "text": text, "parse_mode": "HTML"}
-    if reply_markup:
-        data["reply_markup"] = reply_markup
-    return tg_api("editMessageText", data)
-
-
-def answer_callback(callback_id, text=""):
-    return tg_api("answerCallbackQuery", {"callback_query_id": callback_id, "text": text})
-
-
-def make_member_keyboard(members):
-    """멤버 선택 인라인 키보드"""
-    buttons = []
-    row = []
-    for name in members:
-        row.append({"text": name, "callback_data": f"member:{name}"})
-        if len(row) == 2:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-    buttons.append([{"text": "❌ 취소", "callback_data": "cancel"}])
-    return {"inline_keyboard": buttons}
-
-
-def make_months_keyboard(name):
-    """개월 수 선택 인라인 키보드"""
-    presets = [1, 3, 5, 6, 12, 15]
-    buttons = []
-    row = []
-    for m in presets:
-        row.append({"text": f"{m}개월", "callback_data": f"months:{name}:{m}"})
-        if len(row) == 3:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-    buttons.append([{"text": "⬅️ 뒤로", "callback_data": "back"}, {"text": "❌ 취소", "callback_data": "cancel"}])
-    return {"inline_keyboard": buttons}
-
-
-def make_confirm_keyboard(name, months):
-    """확인 키보드"""
-    return {"inline_keyboard": [
-        [{"text": "✅ 확인", "callback_data": f"confirm:{name}:{months}"},
-         {"text": "❌ 취소", "callback_data": "cancel"}]
-    ]}
-
-
 def format_status(status_list):
-    """현황 메시지 포맷"""
     lines = ["📊 <b>YouTube Premium 결제 현황</b>", ""]
     for s in status_list:
-        emoji = "🟢" if s["state"] == "safe" else ("🟡" if s["state"] == "soon" else "🔴")
+        emoji = {"safe": "🟢", "soon": "🟡", "expired": "🔴"}[s["state"]]
         dday = f"D+{abs(s['days_left'])}" if s["days_left"] < 0 else f"D-{s['days_left']}"
         lines.append(f"{emoji} <b>{s['name']}</b>  {dday}")
         lines.append(f"    만료: {s['cover_end']}  ({s['total_months']}개월 누적)")
         lines.append("")
-    now = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-    lines.append(f"<i>기준: {now} KST</i>")
+    lines.append(f"<i>{datetime.now(KST).strftime('%Y-%m-%d %H:%M')} KST</i>")
     return "\n".join(lines)
 
 
-# ─── offset 관리 ───
+# ─── 이름 퍼지 매칭 ───
 
-def load_offset():
-    """마지막 처리한 update_id를 GitHub에서 로드"""
-    result = gh_api("contents/.tg_offset")
-    if result and "content" in result:
-        content = base64.b64decode(result["content"]).decode("utf-8").strip()
+def find_member(query, members):
+    """정확히 일치 → 포함 매칭 → 실패"""
+    query = query.strip()
+    # 정확히 일치
+    for m in members:
+        if m == query:
+            return m
+    # 부분 매칭 (query가 멤버 이름에 포함)
+    matches = [m for m in members if query in m]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        return None  # 애매함
+    # 역방향 (멤버 이름이 query에 포함)
+    matches = [m for m in members if m in query]
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
+# ─── 명령어 처리 ───
+
+def handle_message(msg):
+    chat_id = msg["chat"]["id"]
+    if not is_allowed(chat_id):
+        send_msg(chat_id, f"⛔ 권한이 없습니다.\n채팅 ID: <code>{chat_id}</code>")
+        return
+
+    text = msg.get("text", "").strip()
+    if not text:
+        return
+
+    # 봇 유저네임 제거 (/add@botname → /add)
+    if "@" in text.split()[0]:
+        parts = text.split()
+        parts[0] = parts[0].split("@")[0]
+        text = " ".join(parts)
+
+    cmd = text.split()[0].lower()
+    args = text.split()[1:]
+
+    if cmd in ("/start", "/help"):
+        send_msg(chat_id, (
+            "🎬 <b>YouTube Premium 결제 관리 봇</b>\n\n"
+            "📌 <b>명령어:</b>\n\n"
+            "<b>/add 이름 개월수</b>\n"
+            "  결제 추가 (오늘 날짜)\n"
+            "  예: <code>/add 구회원 3</code>\n\n"
+            "<b>/add 이름 개월수 날짜</b>\n"
+            "  날짜 지정 추가\n"
+            "  예: <code>/add 류동헌 5 2026-03-01</code>\n\n"
+            "<b>/del 이름</b>\n"
+            "  마지막 결제 기록 삭제\n"
+            "  예: <code>/del 구회원</code>\n\n"
+            "<b>/status</b> — 전체 현황\n"
+            "<b>/members</b> — 멤버 목록\n\n"
+            "💡 이름은 일부만 입력해도 됩니다\n"
+            "  예: <code>/add 동헌 5</code> → 류동헌"
+        ))
+        return
+
+    if cmd == "/status":
+        payments, _ = load_data()
+        if not payments:
+            send_msg(chat_id, "데이터가 없습니다")
+            return
+        send_msg(chat_id, format_status(compute_status(payments)))
+        return
+
+    if cmd == "/members":
+        payments, _ = load_data()
+        members = sorted(set(p["name"] for p in payments))
+        if not members:
+            send_msg(chat_id, "등록된 멤버가 없습니다")
+            return
+        lines = ["👥 <b>등록된 멤버</b>", ""]
+        for m in members:
+            lines.append(f"  • {m}")
+        send_msg(chat_id, "\n".join(lines))
+        return
+
+    if cmd == "/add":
+        handle_add(chat_id, args)
+        return
+
+    if cmd == "/del":
+        handle_del(chat_id, args)
+        return
+
+    send_msg(chat_id, "❓ 알 수 없는 명령어입니다.\n/help 를 입력해보세요.")
+
+
+def handle_add(chat_id, args):
+    if len(args) < 2:
+        send_msg(chat_id, (
+            "⚠️ 형식: <code>/add 이름 개월수</code>\n\n"
+            "예시:\n"
+            "  <code>/add 구회원 3</code>\n"
+            "  <code>/add 류동헌 5 2026-03-01</code>"
+        ))
+        return
+
+    name_query = args[0]
+    try:
+        months = int(args[1])
+        if months < 1:
+            raise ValueError
+    except ValueError:
+        send_msg(chat_id, "⚠️ 개월 수는 1 이상 숫자여야 합니다")
+        return
+
+    # 날짜 파싱
+    today = datetime.now(KST).strftime("%Y-%m-%d")
+    pay_date = today
+    if len(args) >= 3:
         try:
-            return int(content), result["sha"]
+            date.fromisoformat(args[2])
+            pay_date = args[2]
         except ValueError:
-            pass
-    return 0, None
+            send_msg(chat_id, "⚠️ 날짜 형식은 YYYY-MM-DD\n예: <code>2026-04-22</code>")
+            return
+
+    # 데이터 로드 & 이름 매칭
+    payments, sha = load_data()
+    if not sha:
+        send_msg(chat_id, "❌ data.json을 불러올 수 없습니다")
+        return
+
+    members = sorted(set(p["name"] for p in payments))
+    matched = find_member(name_query, members)
+
+    if not matched:
+        similar = [m for m in members if any(c in m for c in name_query)]
+        msg = f"⚠️ '<b>{name_query}</b>' 멤버를 찾을 수 없습니다\n\n"
+        if similar:
+            msg += "혹시?\n" + "\n".join(f"  • {m}" for m in similar) + "\n\n"
+        msg += "전체 멤버: " + ", ".join(members)
+        send_msg(chat_id, msg)
+        return
+
+    # 추가
+    new_id = "t" + datetime.now(KST).strftime("%Y%m%d%H%M%S")
+    payments.append({"id": new_id, "name": matched, "date": pay_date, "months": months})
+
+    commit_msg = f"Add payment: {matched} {months}mo ({pay_date}) via Telegram"
+    if save_data(payments, sha, commit_msg):
+        status = compute_status(payments)
+        ms = next((s for s in status if s["name"] == matched), None)
+        result = f"✅ <b>저장 완료!</b>\n\n👤 {matched} — {months}개월 추가\n📅 결제일: {pay_date}\n"
+        if ms:
+            emoji = {"safe": "🟢", "soon": "🟡", "expired": "🔴"}[ms["state"]]
+            dday = f"D+{abs(ms['days_left'])}" if ms["days_left"] < 0 else f"D-{ms['days_left']}"
+            result += f"\n{emoji} 만료일: <b>{ms['cover_end']}</b>  {dday}\n    총 {ms['total_months']}개월 누적"
+        send_msg(chat_id, result)
+    else:
+        send_msg(chat_id, "❌ GitHub 저장 실패. 다시 시도해주세요.")
 
 
-def save_offset(offset, sha=None):
-    """offset을 GitHub에 저장"""
-    content = base64.b64encode(str(offset).encode()).decode("ascii")
-    data = {
-        "message": "Update telegram bot offset",
-        "content": content,
-    }
-    if sha:
-        data["sha"] = sha
-    gh_api("contents/.tg_offset", method="PUT", data=data)
+def handle_del(chat_id, args):
+    if not args:
+        send_msg(chat_id, "⚠️ 형식: <code>/del 이름</code>\n예: <code>/del 구회원</code>")
+        return
 
+    name_query = args[0]
+    payments, sha = load_data()
+    if not sha:
+        send_msg(chat_id, "❌ data.json을 불러올 수 없습니다")
+        return
 
-# ─── 메인 처리 ───
+    members = sorted(set(p["name"] for p in payments))
+    matched = find_member(name_query, members)
+
+    if not matched:
+        send_msg(chat_id, f"⚠️ '<b>{name_query}</b>' 멤버를 찾을 수 없습니다\n전체: {', '.join(members)}")
+        return
+
+    member_payments = sorted([p for p in payments if p["name"] == matched], key=lambda x: x["date"])
+    last = member_payments[-1]
+    payments = [p for p in payments if p["id"] != last["id"]]
+    commit_msg = f"Delete payment: {matched} {last['months']}mo ({last['date']}) via Telegram"
+
+    if save_data(payments, sha, commit_msg):
+        result = f"🗑️ <b>삭제 완료</b>\n\n👤 {matched}\n📅 {last['date']} / {last['months']}개월 삭제"
+        if any(p["name"] == matched for p in payments):
+            status = compute_status(payments)
+            ms = next((s for s in status if s["name"] == matched), None)
+            if ms:
+                result += f"\n\n현재 만료일: {ms['cover_end']} (D-{ms['days_left']})"
+        else:
+            result += "\n\n⚠️ 이 멤버의 기록이 모두 삭제됨"
+        send_msg(chat_id, result)
+    else:
+        send_msg(chat_id, "❌ GitHub 저장 실패. 다시 시도해주세요.")
+
 
 def is_allowed(chat_id):
     return str(chat_id) in ALLOWED_CHATS
 
 
-def process_updates():
-    """메인 로직: 새 업데이트 처리"""
-    offset, offset_sha = load_offset()
+# ─── 메인 ───
 
-    params = {"timeout": 0, "allowed_updates": '["message","callback_query"]'}
+def process_updates():
+    offset, offset_sha = load_offset()
+    params = {"timeout": 0, "allowed_updates": '["message"]'}
     if offset > 0:
         params["offset"] = offset + 1
 
-    url_params = urllib.parse.urlencode(params)
-    result = tg_api(f"getUpdates?{url_params}")
-
+    result = tg_api(f"getUpdates?{urllib.parse.urlencode(params)}")
     if not result.get("ok") or not result.get("result"):
         print("No new updates")
         return
 
     updates = result["result"]
     print(f"Processing {len(updates)} updates")
-
-    max_update_id = offset
+    max_id = offset
 
     for update in updates:
         uid = update["update_id"]
-        if uid > max_update_id:
-            max_update_id = uid
-
-        # 일반 메시지 처리
+        if uid > max_id:
+            max_id = uid
         if "message" in update:
             handle_message(update["message"])
 
-        # 콜백 쿼리 처리 (버튼 클릭)
-        if "callback_query" in update:
-            handle_callback(update["callback_query"])
-
-    # offset 저장
-    if max_update_id > offset:
-        save_offset(max_update_id, offset_sha)
-        print(f"Offset updated to {max_update_id}")
-
-
-def handle_message(msg):
-    chat_id = msg["chat"]["id"]
-    if not is_allowed(chat_id):
-        print(f"Unauthorized chat: {chat_id}")
-        send_msg(chat_id, "⛔ 권한이 없습니다.\n\n이 채팅 ID를 관리자에게 전달하세요:\n<code>{}</code>".format(chat_id))
-        return
-
-    text = msg.get("text", "").strip()
-
-    if text == "/start" or text == "/help":
-        send_msg(chat_id, (
-            "🎬 <b>YouTube Premium 결제 관리 봇</b>\n\n"
-            "📌 <b>명령어:</b>\n"
-            "/add — 결제 기록 추가\n"
-            "/status — 전체 현황 보기\n"
-            "/help — 도움말\n\n"
-            "버튼을 눌러서 간편하게 입력할 수 있습니다!"
-        ))
-        return
-
-    if text == "/status":
-        payments, _ = load_data()
-        if not payments:
-            send_msg(chat_id, "데이터가 없습니다")
-            return
-        status = compute_status(payments)
-        send_msg(chat_id, format_status(status))
-        return
-
-    if text == "/add":
-        payments, _ = load_data()
-        members = sorted(set(p["name"] for p in payments))
-        if not members:
-            send_msg(chat_id, "등록된 멤버가 없습니다. data.json에 먼저 추가해주세요.")
-            return
-        send_msg(chat_id,
-                 "👤 <b>결제할 멤버를 선택하세요</b>",
-                 reply_markup=make_member_keyboard(members))
-        return
-
-    # 알 수 없는 메시지
-    send_msg(chat_id, "명령어를 선택해주세요: /add, /status, /help")
-
-
-def handle_callback(callback):
-    chat_id = callback["message"]["chat"]["id"]
-    msg_id = callback["message"]["message_id"]
-    cb_id = callback["id"]
-    data = callback.get("data", "")
-
-    if not is_allowed(chat_id):
-        answer_callback(cb_id, "권한 없음")
-        return
-
-    # ── 취소 ──
-    if data == "cancel":
-        answer_callback(cb_id, "취소됨")
-        edit_msg(chat_id, msg_id, "❌ 취소되었습니다.")
-        return
-
-    # ── 뒤로 (멤버 선택으로 돌아감) ──
-    if data == "back":
-        answer_callback(cb_id)
-        payments, _ = load_data()
-        members = sorted(set(p["name"] for p in payments))
-        edit_msg(chat_id, msg_id,
-                 "👤 <b>결제할 멤버를 선택하세요</b>",
-                 reply_markup=make_member_keyboard(members))
-        return
-
-    # ── 멤버 선택 → 개월 수 ──
-    if data.startswith("member:"):
-        name = data.split(":", 1)[1]
-        answer_callback(cb_id, f"{name} 선택")
-        today = datetime.now(KST).strftime("%Y-%m-%d")
-        edit_msg(chat_id, msg_id,
-                 f"👤 <b>{name}</b>\n📅 결제일: {today}\n\n⏱ <b>개월 수를 선택하세요</b>",
-                 reply_markup=make_months_keyboard(name))
-        return
-
-    # ── 개월 수 선택 → 확인 ──
-    if data.startswith("months:"):
-        parts = data.split(":")
-        name, months = parts[1], int(parts[2])
-        answer_callback(cb_id)
-        today = datetime.now(KST).strftime("%Y-%m-%d")
-
-        # 미리보기: 이 결제 후 만료일 계산
-        payments, _ = load_data()
-        preview_payments = payments + [{"name": name, "date": today, "months": months, "id": "preview"}]
-        preview_status = [s for s in compute_status(preview_payments) if s["name"] == name]
-        preview_text = ""
-        if preview_status:
-            ps = preview_status[0]
-            preview_text = f"\n\n📊 결제 후 만료일: <b>{ps['cover_end']}</b> (D-{ps['days_left']})"
-
-        edit_msg(chat_id, msg_id,
-                 f"📝 <b>결제 확인</b>\n\n"
-                 f"👤 이름: <b>{name}</b>\n"
-                 f"📅 결제일: <b>{today}</b>\n"
-                 f"⏱ 개월: <b>{months}개월</b>"
-                 f"{preview_text}\n\n"
-                 f"이대로 저장할까요?",
-                 reply_markup=make_confirm_keyboard(name, months))
-        return
-
-    # ── 최종 확인 → 저장 ──
-    if data.startswith("confirm:"):
-        parts = data.split(":")
-        name, months = parts[1], int(parts[2])
-        today = datetime.now(KST).strftime("%Y-%m-%d")
-
-        payments, sha = load_data()
-        if not sha:
-            answer_callback(cb_id, "데이터 로드 실패")
-            edit_msg(chat_id, msg_id, "❌ 데이터를 불러올 수 없습니다. 다시 시도해주세요.")
-            return
-
-        # 새 기록 추가
-        new_id = "t" + datetime.now(KST).strftime("%Y%m%d%H%M%S")
-        payments.append({
-            "id": new_id,
-            "name": name,
-            "date": today,
-            "months": months,
-        })
-
-        # GitHub에 저장
-        commit_msg = f"Add payment: {name} {months}mo ({today}) via Telegram"
-        success = save_data(payments, sha, commit_msg)
-
-        if success:
-            answer_callback(cb_id, "저장 완료!")
-            # 업데이트된 현황
-            status = compute_status(payments)
-            member_status = next((s for s in status if s["name"] == name), None)
-            result_text = (
-                f"✅ <b>저장 완료!</b>\n\n"
-                f"👤 {name} — {months}개월 추가\n"
-                f"📅 결제일: {today}\n"
-            )
-            if member_status:
-                emoji = "🟢" if member_status["state"] == "safe" else ("🟡" if member_status["state"] == "soon" else "🔴")
-                result_text += (
-                    f"\n{emoji} 만료일: <b>{member_status['cover_end']}</b>\n"
-                    f"    D-{member_status['days_left']} | 총 {member_status['total_months']}개월 누적"
-                )
-            edit_msg(chat_id, msg_id, result_text)
-        else:
-            answer_callback(cb_id, "저장 실패")
-            edit_msg(chat_id, msg_id, "❌ GitHub 저장에 실패했습니다. 다시 시도해주세요.")
-        return
-
-    answer_callback(cb_id)
+    if max_id > offset:
+        save_offset(max_id, offset_sha)
+        print(f"Offset → {max_id}")
 
 
 if __name__ == "__main__":
     if not BOT_TOKEN:
-        print("ERROR: TELEGRAM_BOT_TOKEN not set")
-        sys.exit(1)
+        print("ERROR: TELEGRAM_BOT_TOKEN not set"); sys.exit(1)
     if not GH_TOKEN:
-        print("ERROR: GH_TOKEN not set")
-        sys.exit(1)
+        print("ERROR: GH_TOKEN not set"); sys.exit(1)
     if not GH_REPO:
-        print("ERROR: GH_REPO not set")
-        sys.exit(1)
+        print("ERROR: GH_REPO not set"); sys.exit(1)
     if not ALLOWED_CHATS:
-        print("WARNING: TELEGRAM_CHAT_ID not set — all chats will be rejected")
-
+        print("WARNING: TELEGRAM_CHAT_ID not set")
     process_updates()

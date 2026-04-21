@@ -1,8 +1,10 @@
 name: Telegram Bot Polling
 
 on:
+  # 5분마다 폴링
   schedule:
     - cron: '*/5 * * * *'
+  # 수동 실행
   workflow_dispatch:
 
 permissions:
