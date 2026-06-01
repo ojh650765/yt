@@ -452,7 +452,7 @@ const TOKEN_KEY = 'yt_gh_token';
 const INR_TOTAL = 389;
 const MEMBER_COUNT = 6;
 
-let payments = [], serverData = [], isAdmin = false, hasLocalChanges = false, cachedKrwPerPerson = null, ghToken = null;
+let payments = [], serverData = [], isAdmin = false, hasLocalChanges = false, cachedKrwPerPerson = null, cachedInrRate = null, ghToken = null;
 
 function toast(msg, type='info') {
   document.querySelectorAll('.toast').forEach(t=>t.remove());
@@ -494,12 +494,17 @@ async function fetchExchangeRate(){
   }catch{renderPriceError();}
 }
 function renderPrice(rate){
-  const ytAmt=(balanceData&&balanceData.charges)?((balanceData.charges.find(c=>c.name.includes('YouTube'))||{}).amount||INR_TOTAL):INR_TOTAL;
-  const pp=ytAmt/MEMBER_COUNT, krwT=Math.round(ytAmt*rate), krwP=Math.round(pp*rate);
+  cachedInrRate=rate;
+  const charges=(balanceData&&Array.isArray(balanceData.charges))?balanceData.charges:[{name:'YouTube Premium',amount:INR_TOTAL}];
+  const totalAmt=charges.reduce((sum,c)=>sum+(Number(c.amount)||0),0)||INR_TOTAL;
+  const pp=totalAmt/MEMBER_COUNT, krwP=Math.round(pp*rate);
   cachedKrwPerPerson=krwP;
+  const detailRows=charges.length>1?charges.map(c=>`
+    <div class="price-row"><span class="pk">${esc(c.name)}</span><span class="pv">₹${Number(c.amount||0).toLocaleString()}</span></div>`).join(''):'';
   const sidebarHtml=`
     <h3>MONTHLY COST</h3>
-    <div class="price-row"><span class="pk">총액</span><span class="pv">₹${ytAmt}/월</span></div>
+    <div class="price-row"><span class="pk">총액</span><span class="pv">₹${totalAmt.toLocaleString()}/월</span></div>
+    ${detailRows}
     <div class="price-row"><span class="pk">인원</span><span class="pv">${MEMBER_COUNT}명</span></div>
     <div class="price-row"><span class="pk">1인 (₹)</span><span class="pv">₹${pp.toFixed(1)}</span></div>
     <div class="price-row"><span class="pk">환율</span><span class="pv">1₹ = ${rate.toFixed(2)}₩</span></div>
@@ -527,29 +532,49 @@ async function fetchBalance(){
 }
 
 function getNextChargeDate(day){
-  const now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
-  const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
-  let next=new Date(y,m,day);
-  if(d>=day)next=new Date(y,m+1,day);
+  const now=getKstNow();
+  const y=now.getFullYear(),m=now.getMonth();
+  let next=getChargeDate(y,m,day);
+  if(now>=next)next=getChargeDate(y,m+1,day);
   return next;
+}
+
+function getKstNow(){
+  return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+}
+
+function getChargeDate(year,month,day){
+  const last=new Date(year,month+1,0).getDate();
+  return new Date(year,month,Math.min(Math.max(Number(day)||1,1),last));
+}
+
+function getChargeEvents(charges,start,end){
+  const events=[];
+  const from=new Date(start);from.setHours(0,0,0,0);
+  const to=new Date(end);to.setHours(23,59,59,999);
+  const cursor=new Date(from.getFullYear(),from.getMonth(),1);
+  const endMonth=new Date(to.getFullYear(),to.getMonth()+1,1);
+  while(cursor<endMonth){
+    charges.forEach(c=>{
+      const dt=getChargeDate(cursor.getFullYear(),cursor.getMonth(),c.day);
+      if(dt>from&&dt<=to)events.push({date:dt,name:c.name,amount:Number(c.amount)||0});
+    });
+    cursor.setMonth(cursor.getMonth()+1);
+  }
+  return events.sort((a,b)=>a.date-b.date);
 }
 
 function calcBalanceForecast(){
   if(!balanceData)return null;
   const charges=balanceData.charges||[];
-  const now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
-  let bal=balanceData.amount;
-  const events=[];
-  for(let i=0;i<4;i++){
-    charges.forEach(c=>{
-      const m=now.getMonth()+i;
-      const y=now.getFullYear()+Math.floor(m/12);
-      const mo=m%12;
-      const dt=new Date(y,mo,c.day);
-      if(dt>now)events.push({date:dt,name:c.name,amount:c.amount});
-    });
-  }
-  events.sort((a,b)=>a.date-b.date);
+  const now=getKstNow();
+  let baseDate=new Date((balanceData.updated||fmtDate(now))+'T00:00:00');
+  if(isNaN(baseDate))baseDate=new Date(now);
+  const paidEvents=getChargeEvents(charges,baseDate,now);
+  const paidTotal=paidEvents.reduce((sum,e)=>sum+e.amount,0);
+  let bal=(Number(balanceData.amount)||0)-paidTotal;
+  const futureEnd=new Date(now.getFullYear(),now.getMonth()+4,now.getDate());
+  const events=getChargeEvents(charges,now,futureEnd);
   const forecast=[];
   let insuffDate=null, insuffName=null;
   events.forEach(e=>{
@@ -558,8 +583,8 @@ function calcBalanceForecast(){
     if(bal<0&&!insuffDate){insuffDate=e.date;insuffName=e.name;}
   });
   const nextCharge=events[0]||null;
-  const nextInsuff=balanceData.amount<(nextCharge?nextCharge.amount:0);
-  return{balance:balanceData.amount,updated:balanceData.updated,charges,forecast,insuffDate,insuffName,nextCharge,nextInsuff};
+  const nextInsuff=bal<(nextCharge?nextCharge.amount:0);
+  return{balance:bal,baseBalance:balanceData.amount,updated:balanceData.updated,charges,forecast,paidEvents,paidTotal,insuffDate,insuffName,nextCharge,nextInsuff};
 }
 
 function renderBalance(){
@@ -605,10 +630,12 @@ function renderBalance(){
       <button class="bal-save" onclick="updateBalance()">저장</button>`;
   }
 
+  const paidNote=fc.paidTotal>0?` · 지난 결제 ₹${fc.paidTotal.toLocaleString()} 반영`:'';
+
   el.innerHTML=`
     <h3>INR BALANCE</h3>
     <div class="balance-amount ${statusClass}">₹${fc.balance.toLocaleString()}</div>
-    <div class="balance-updated">${fc.updated} 기준</div>
+    <div class="balance-updated">${fc.updated} 기준${paidNote}</div>
     <div class="balance-charges">${chargesHtml}</div>
     <div class="balance-forecast"><div style="font-weight:600;margin-bottom:6px;color:var(--ink)">결제 예상</div>${forecastHtml}</div>
     ${warningHtml}
@@ -619,12 +646,7 @@ function renderBalance(){
 }
 
 function updateMonthlyCost(){
-  if(!balanceData||!balanceData.charges)return;
-  const yt=balanceData.charges.find(c=>c.name.includes('YouTube'));
-  if(yt){
-
-    window._ytAmount=yt.amount;
-  }
+  if(cachedInrRate)renderPrice(cachedInrRate);
 }
 
 async function updateBalance(){
@@ -686,8 +708,9 @@ async function init(){
   }
   const now=new Date(),dow=['일','월','화','수','목','금','토'][now.getDay()];
   document.getElementById('pub-date').textContent=fmtDate(now)+' ('+dow+')';
-  setupSearch();fetchExchangeRate();
+  setupSearch();
   await fetchBalance();renderBalance();
+  fetchExchangeRate();
 }
 
 
