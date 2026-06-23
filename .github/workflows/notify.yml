@@ -5,6 +5,9 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   check-dday:
     runs-on: ubuntu-latest
@@ -16,66 +19,20 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          MSG=$(node -e "
-          const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
-          const now = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-          function addMonths(s, m) { const d = new Date(s+'T00:00:00'); d.setMonth(d.getMonth()+m); return d; }
-
-          const groups = {};
-          data.forEach(p => { if(!groups[p.name]) groups[p.name]=[]; groups[p.name].push(p); });
-
-          const members = [];
-          for (const name in groups) {
-            const list = groups[name].sort((a,b) => a.date.localeCompare(b.date));
-            let coverEnd = null;
-            list.forEach(p => {
-              const pd = new Date(p.date+'T00:00:00');
-              const st = (!coverEnd || pd > coverEnd) ? pd : coverEnd;
-              coverEnd = addMonths(st.toISOString().slice(0,10), p.months);
-              coverEnd.setHours(0,0,0,0);
-            });
-            members.push({ name, dl: Math.round((coverEnd - today) / 86400000) });
-          }
-          members.sort((a,b) => a.dl - b.dl);
-
-          const lines = members.map(m => {
-            if (m.dl < 0) return '⚫ ' + m.name + ' — ' + Math.abs(m.dl) + '일 초과';
-            if (m.dl === 0) return '🔴 ' + m.name + ' — 오늘 만료!';
-            return '🟢 ' + m.name + ' — D-' + m.dl;
-          });
-
-          let balMsg = '';
-          try {
-            const bal = JSON.parse(fs.readFileSync('balance.json', 'utf8'));
-            const charges = bal.charges || [];
-            const d = today.getDate();
-            let amount = bal.amount;
-            const monthlyTotal = charges.reduce((s,c) => s + c.amount, 0);
-
-            const upcoming = [];
-            charges.forEach(c => {
-              const nd = d < c.day ? c.day : c.day;
-              const daysUntil = d <= c.day ? c.day - d : (new Date(today.getFullYear(), today.getMonth()+1, c.day) - today) / 86400000;
-              upcoming.push({ name: c.name, amount: c.amount, day: c.day, daysUntil: Math.round(daysUntil) });
-            });
-            upcoming.sort((a,b) => a.daysUntil - b.daysUntil);
-
-            balMsg = '\n\n💰 INR 잔액: ₹' + amount.toLocaleString();
-            if (amount < upcoming[0].amount) {
-              balMsg += '\n🚨 잔액 부족! ' + upcoming[0].name + ' ₹' + upcoming[0].amount + ' 결제 불가!';
-            } else if (amount < monthlyTotal) {
-              balMsg += '\n⚠️ 이번 달 결제액(₹' + monthlyTotal + ') 부족 예상';
-            }
-          } catch(e) {}
-
-          console.log('YouTube Premium 결제 현황\n\n' + lines.join('\n') + balMsg);
-          ")
+          MSG=$(node scripts/build_notify_message.js --write-balance)
 
           echo "$MSG"
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d chat_id="${TELEGRAM_CHAT_ID}" \
             -d text="${MSG}"
+
+      - name: Commit updated balance
+        run: |
+          if ! git diff --quiet -- balance.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add balance.json
+            git commit -m "Update INR balance"
+            git push
+          fi

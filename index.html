@@ -572,19 +572,20 @@ function calcBalanceForecast(){
   if(isNaN(baseDate))baseDate=new Date(now);
   const paidEvents=getChargeEvents(charges,baseDate,now);
   const paidTotal=paidEvents.reduce((sum,e)=>sum+e.amount,0);
-  let bal=(Number(balanceData.amount)||0)-paidTotal;
+  const currentBalance=(Number(balanceData.amount)||0)-paidTotal;
   const futureEnd=new Date(now.getFullYear(),now.getMonth()+4,now.getDate());
   const events=getChargeEvents(charges,now,futureEnd);
   const forecast=[];
   let insuffDate=null, insuffName=null;
+  let forecastBalance=currentBalance;
   events.forEach(e=>{
-    bal-=e.amount;
-    forecast.push({date:e.date,name:e.name,amount:e.amount,remaining:bal});
-    if(bal<0&&!insuffDate){insuffDate=e.date;insuffName=e.name;}
+    forecastBalance-=e.amount;
+    forecast.push({date:e.date,name:e.name,amount:e.amount,remaining:forecastBalance});
+    if(forecastBalance<0&&!insuffDate){insuffDate=e.date;insuffName=e.name;}
   });
   const nextCharge=events[0]||null;
-  const nextInsuff=bal<(nextCharge?nextCharge.amount:0);
-  return{balance:bal,baseBalance:balanceData.amount,updated:balanceData.updated,charges,forecast,paidEvents,paidTotal,insuffDate,insuffName,nextCharge,nextInsuff};
+  const nextInsuff=nextCharge?currentBalance<nextCharge.amount:false;
+  return{balance:currentBalance,baseBalance:balanceData.amount,updated:balanceData.updated,charges,forecast,paidEvents,paidTotal,insuffDate,insuffName,nextCharge,nextInsuff};
 }
 
 function renderBalance(){
