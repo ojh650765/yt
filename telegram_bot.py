@@ -85,6 +85,24 @@ def send_msg(chat_id, text):
     return tg_api("sendMessage", {"chat_id": chat_id, "text": text, "parse_mode": "HTML"})
 
 
+BOT_COMMANDS = [
+    {"command": "status", "description": "전체 결제 현황"},
+    {"command": "balance", "description": "INR 잔액과 충전 필요일"},
+    {"command": "members", "description": "등록된 멤버 목록"},
+    {"command": "add", "description": "결제 추가: /add 이름 개월수 [날짜]"},
+    {"command": "del", "description": "마지막 결제 삭제: /del 이름"},
+    {"command": "help", "description": "명령어 도움말"},
+]
+
+
+def sync_bot_commands():
+    result = tg_api("setMyCommands", {"commands": BOT_COMMANDS})
+    if result.get("ok"):
+        print("Bot commands synced")
+    else:
+        print("WARNING: failed to sync bot commands")
+
+
 # ─── data.json ───
 
 def load_data():
@@ -530,4 +548,5 @@ if __name__ == "__main__":
         print("ERROR: GH_REPO not set"); sys.exit(1)
     if not ALLOWED_CHATS:
         print("WARNING: TELEGRAM_CHAT_ID not set")
+    sync_bot_commands()
     process_updates()
