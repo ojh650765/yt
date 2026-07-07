@@ -9,6 +9,7 @@ GitHub Actions에서 schedule(폴링)로 실행됩니다.
   /add 이름 개월수 날짜     결제 추가 (날짜 지정)
   /del 이름                 마지막 결제 삭제
   /status                   전체 현황
+  /balance                  INR 잔액 및 다음 결제
   /members                  등록된 멤버 목록
   /help                     도움말
 
@@ -30,6 +31,7 @@ import os
 import json
 import sys
 import base64
+import calendar
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -41,6 +43,7 @@ ALLOWED_CHATS = [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
 GH_REPO = os.environ.get("GH_REPO", "")
 DATA_PATH = os.environ.get("DATA_PATH", "data.json")
+BALANCE_PATH = os.environ.get("BALANCE_PATH", "balance.json")
 
 KST = timezone(timedelta(hours=9))
 
@@ -102,6 +105,14 @@ def save_data(payments, sha, commit_msg):
     return result is not None
 
 
+def load_balance():
+    result = gh_api(f"contents/{BALANCE_PATH}")
+    if not result or "content" not in result:
+        return None
+    content = base64.b64decode(result["content"]).decode("utf-8")
+    return json.loads(content)
+
+
 # ─── offset (GitHub 저장) ───
 
 def load_offset():
@@ -131,6 +142,70 @@ def add_months(d, months):
     max_days = [31, 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28,
                 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     return date(year, month, min(d.day, max_days[month - 1]))
+
+
+def get_charge_date(year, month, day):
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(max(int(day or 1), 1), last_day))
+
+
+def get_charge_events(charges, start, end):
+    events = []
+    cursor = date(start.year, start.month, 1)
+    end_month = date(end.year, end.month, 1)
+
+    while cursor <= end_month:
+        for charge in charges:
+            charge_date = get_charge_date(cursor.year, cursor.month, charge.get("day", 1))
+            if start < charge_date <= end:
+                events.append({
+                    "date": charge_date,
+                    "name": charge.get("name", "결제"),
+                    "amount": int(charge.get("amount") or 0),
+                })
+        cursor = add_months(cursor, 1)
+
+    return sorted(events, key=lambda x: x["date"])
+
+
+def compute_balance(balance):
+    today = datetime.now(KST).date()
+    updated = date.fromisoformat(balance.get("updated")) if balance.get("updated") else today
+    charges = balance.get("charges") if isinstance(balance.get("charges"), list) else []
+    paid_events = get_charge_events(charges, updated, today)
+    paid_total = sum(event["amount"] for event in paid_events)
+    current_amount = int(balance.get("amount") or 0) - paid_total
+    upcoming = get_charge_events(charges, today, add_months(today, 1))
+
+    return {
+        "today": today,
+        "updated": updated,
+        "current_amount": current_amount,
+        "paid_total": paid_total,
+        "upcoming": upcoming,
+    }
+
+
+def format_balance(balance_status):
+    lines = [
+        "💰 <b>INR 잔액</b>",
+        f"현재: <b>₹{balance_status['current_amount']:,}</b>",
+        f"기준: {balance_status['today'].isoformat()} KST / 마지막 반영: {balance_status['updated'].isoformat()}",
+    ]
+
+    if balance_status["paid_total"] > 0:
+        lines.append(f"지난 결제 차감: ₹{balance_status['paid_total']:,}")
+
+    if balance_status["upcoming"]:
+        lines.extend(["", "<b>다음 결제</b>"])
+        running_amount = balance_status["current_amount"]
+        for event in balance_status["upcoming"][:3]:
+            running_amount -= event["amount"]
+            lines.append(
+                f"• {event['date'].isoformat()} {event['name']} ₹{event['amount']:,} → 잔액 ₹{running_amount:,}"
+            )
+
+    return "\n".join(lines)
 
 
 def compute_status(payments):
@@ -171,6 +246,25 @@ def format_status(status_list):
         lines.append("")
     lines.append(f"<i>{datetime.now(KST).strftime('%Y-%m-%d %H:%M')} KST</i>")
     return "\n".join(lines)
+
+
+def help_text():
+    return (
+        "🎬 <b>YouTube Premium 결제 관리 봇</b>\n\n"
+        "📌 <b>명령어</b>\n\n"
+        "<b>/status</b> — 전체 결제 현황\n"
+        "<b>/balance</b> — INR 잔액과 다음 결제\n"
+        "<b>/members</b> — 등록된 멤버 목록\n"
+        "<b>/add 이름 개월수</b> — 오늘 날짜로 결제 추가\n"
+        "  예: <code>/add 구회원 3</code>\n"
+        "<b>/add 이름 개월수 날짜</b> — 지정 날짜로 결제 추가\n"
+        "  예: <code>/add 류동헌 5 2026-03-01</code>\n"
+        "<b>/del 이름</b> — 마지막 결제 기록 삭제\n"
+        "  예: <code>/del 구회원</code>\n"
+        "<b>/help</b> — 이 도움말\n\n"
+        "💡 이름은 일부만 입력해도 됩니다\n"
+        "  예: <code>/add 동헌 5</code> → 류동헌"
+    )
 
 
 # ─── 이름 퍼지 매칭 ───
@@ -217,23 +311,7 @@ def handle_message(msg):
     args = text.split()[1:]
 
     if cmd in ("/start", "/help"):
-        send_msg(chat_id, (
-            "🎬 <b>YouTube Premium 결제 관리 봇</b>\n\n"
-            "📌 <b>명령어:</b>\n\n"
-            "<b>/add 이름 개월수</b>\n"
-            "  결제 추가 (오늘 날짜)\n"
-            "  예: <code>/add 구회원 3</code>\n\n"
-            "<b>/add 이름 개월수 날짜</b>\n"
-            "  날짜 지정 추가\n"
-            "  예: <code>/add 류동헌 5 2026-03-01</code>\n\n"
-            "<b>/del 이름</b>\n"
-            "  마지막 결제 기록 삭제\n"
-            "  예: <code>/del 구회원</code>\n\n"
-            "<b>/status</b> — 전체 현황\n"
-            "<b>/members</b> — 멤버 목록\n\n"
-            "💡 이름은 일부만 입력해도 됩니다\n"
-            "  예: <code>/add 동헌 5</code> → 류동헌"
-        ))
+        send_msg(chat_id, help_text())
         return
 
     if cmd == "/status":
@@ -242,6 +320,14 @@ def handle_message(msg):
             send_msg(chat_id, "데이터가 없습니다")
             return
         send_msg(chat_id, format_status(compute_status(payments)))
+        return
+
+    if cmd == "/balance":
+        balance = load_balance()
+        if not balance:
+            send_msg(chat_id, "balance.json을 불러올 수 없습니다")
+            return
+        send_msg(chat_id, format_balance(compute_balance(balance)))
         return
 
     if cmd == "/members":

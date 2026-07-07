@@ -104,8 +104,11 @@ function computeBalance(balance, today) {
 
   return {
     currentAmount,
+    updated: fmtDate(baseDate),
+    today: fmtDate(today),
     paidTotal,
     monthlyTotal,
+    upcoming,
     nextCharge,
     insufficiency,
   };
@@ -127,9 +130,19 @@ function formatMemberLine(member) {
 
 function formatBalance(balanceStatus) {
   const lines = ['', `💰 INR 잔액: ₹${balanceStatus.currentAmount.toLocaleString()}`];
+  lines.push(`   기준: ${balanceStatus.today} KST / 마지막 반영: ${balanceStatus.updated}`);
 
   if (balanceStatus.paidTotal > 0) {
     lines.push(`   지난 결제 차감: ₹${balanceStatus.paidTotal.toLocaleString()}`);
+  }
+
+  if (balanceStatus.upcoming.length > 0) {
+    let runningAmount = balanceStatus.currentAmount;
+    lines.push('   다음 결제:');
+    balanceStatus.upcoming.slice(0, 3).forEach((event) => {
+      runningAmount -= event.amount;
+      lines.push(`   - ${fmtDate(event.date)} ${event.name} ₹${event.amount.toLocaleString()} → ₹${runningAmount.toLocaleString()}`);
+    });
   }
 
   if (balanceStatus.insufficiency) {

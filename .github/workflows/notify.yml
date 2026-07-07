@@ -5,6 +5,10 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: d-day-telegram-notification
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -23,9 +27,9 @@ jobs:
 
           echo "$MSG"
 
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            -d text="${MSG}"
+          curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${MSG}"
 
       - name: Commit updated balance
         run: |
@@ -34,5 +38,6 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add balance.json
             git commit -m "Update INR balance"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
             git push
           fi
