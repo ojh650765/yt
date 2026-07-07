@@ -168,6 +168,14 @@ def get_charge_events(charges, start, end):
     return sorted(events, key=lambda x: x["date"])
 
 
+def format_dday(days_left):
+    if days_left < 0:
+        return f"D+{abs(days_left)}"
+    if days_left == 0:
+        return "D-Day"
+    return f"D-{days_left}"
+
+
 def compute_balance(balance):
     today = datetime.now(KST).date()
     updated = date.fromisoformat(balance.get("updated")) if balance.get("updated") else today
@@ -176,6 +184,19 @@ def compute_balance(balance):
     paid_total = sum(event["amount"] for event in paid_events)
     current_amount = int(balance.get("amount") or 0) - paid_total
     upcoming = get_charge_events(charges, today, add_months(today, 1))
+    forecast_events = get_charge_events(charges, today, add_months(today, 24))
+    running_amount = current_amount
+    insufficiency = None
+
+    for event in forecast_events:
+        running_amount -= event["amount"]
+        if running_amount < 0 and insufficiency is None:
+            insufficiency = {
+                **event,
+                "remaining": running_amount,
+                "days_left": (event["date"] - today).days,
+            }
+            break
 
     return {
         "today": today,
@@ -183,6 +204,7 @@ def compute_balance(balance):
         "current_amount": current_amount,
         "paid_total": paid_total,
         "upcoming": upcoming,
+        "insufficiency": insufficiency,
     }
 
 
@@ -204,6 +226,16 @@ def format_balance(balance_status):
             lines.append(
                 f"• {event['date'].isoformat()} {event['name']} ₹{event['amount']:,} → 잔액 ₹{running_amount:,}"
             )
+
+    if balance_status["insufficiency"]:
+        event = balance_status["insufficiency"]
+        lines.extend([
+            "",
+            f"🔋 충전 필요 예상: <b>{event['date'].isoformat()}</b> ({format_dday(event['days_left'])})",
+            f"🚨 {event['name']} ₹{event['amount']:,} 결제 후 잔액 ₹{event['remaining']:,}",
+        ])
+    else:
+        lines.extend(["", "🔋 충전 필요 예상: 24개월 내 없음"])
 
     return "\n".join(lines)
 

@@ -18,6 +18,12 @@ function fmtDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
+function fmtDday(daysLeft) {
+  if (daysLeft < 0) return `D+${Math.abs(daysLeft)}`;
+  if (daysLeft === 0) return 'D-Day';
+  return `D-${daysLeft}`;
+}
+
 function addMonths(date, months) {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
@@ -93,13 +99,21 @@ function computeBalance(balance, today) {
   const monthlyTotal = charges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
   const futureEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, today.getUTCDate()));
   const upcoming = getChargeEvents(charges, today, futureEnd);
+  const forecastEnd = addMonths(today, 24);
+  const forecastEvents = getChargeEvents(charges, today, forecastEnd);
   const nextCharge = upcoming[0] || null;
 
   let runningAmount = currentAmount;
   let insufficiency = null;
-  upcoming.forEach((event) => {
+  forecastEvents.forEach((event) => {
     runningAmount -= event.amount;
-    if (runningAmount < 0 && !insufficiency) insufficiency = event;
+    if (runningAmount < 0 && !insufficiency) {
+      insufficiency = {
+        ...event,
+        remaining: runningAmount,
+        daysLeft: Math.round((event.date - today) / DAY_MS),
+      };
+    }
   });
 
   return {
@@ -146,11 +160,14 @@ function formatBalance(balanceStatus) {
   }
 
   if (balanceStatus.insufficiency) {
-    lines.push(`🚨 잔액 부족! ${fmtDate(balanceStatus.insufficiency.date)} ${balanceStatus.insufficiency.name} ₹${balanceStatus.insufficiency.amount} 결제 불가!`);
+    lines.push(`🔋 충전 필요 예상: ${fmtDate(balanceStatus.insufficiency.date)} (${fmtDday(balanceStatus.insufficiency.daysLeft)})`);
+    lines.push(`🚨 잔액 부족! ${balanceStatus.insufficiency.name} ₹${balanceStatus.insufficiency.amount} 결제 후 ₹${balanceStatus.insufficiency.remaining.toLocaleString()}`);
   } else if (balanceStatus.nextCharge && balanceStatus.currentAmount < balanceStatus.nextCharge.amount) {
     lines.push(`🚨 잔액 부족! ${fmtDate(balanceStatus.nextCharge.date)} ${balanceStatus.nextCharge.name} ₹${balanceStatus.nextCharge.amount} 결제 불가!`);
   } else if (balanceStatus.currentAmount < balanceStatus.monthlyTotal) {
     lines.push(`⚠️ 이번 달 결제액(₹${balanceStatus.monthlyTotal.toLocaleString()}) 부족 예상`);
+  } else {
+    lines.push('🔋 충전 필요 예상: 24개월 내 없음');
   }
 
   return lines.join('\n');
