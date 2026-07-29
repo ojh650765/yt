@@ -1,8 +1,16 @@
 {
-  "amount": 2883,
-  "updated": "2026-07-08",
+  "amount": 2808,
+  "updated": "2026-07-29",
   "charges": [
-    { "name": "YouTube Premium", "amount": 389, "day": 6 },
-    { "name": "기타 구독", "amount": 75, "day": 29 }
+    {
+      "name": "YouTube Premium",
+      "amount": 389,
+      "day": 6
+    },
+    {
+      "name": "기타 구독",
+      "amount": 75,
+      "day": 29
+    }
   ]
 }
