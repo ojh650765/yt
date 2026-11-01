@@ -34,33 +34,20 @@ function addMonths(date, months) {
   return result;
 }
 
+function addDays(date, days) {
+  return new Date(date.getTime() + (Number(days) || 0) * DAY_MS);
+}
+
 function getChargeDate(year, month, day) {
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   return new Date(Date.UTC(year, month, Math.min(Math.max(Number(day) || 1, 1), lastDay)));
 }
 
-function getChargeEvents(charges, start, end) {
-  const events = [];
-  const from = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
-  const to = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-  const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
-  const endMonth = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth() + 1, 1));
-
-  while (cursor < endMonth) {
-    charges.forEach((charge) => {
-      const date = getChargeDate(cursor.getUTCFullYear(), cursor.getUTCMonth(), charge.day);
-      if (date > from && date <= to) {
-        events.push({
-          date,
-          name: charge.name,
-          amount: Number(charge.amount) || 0,
-        });
-      }
-    });
-    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
-  }
-
-  return events.sort((a, b) => a.date - b.date);
+function getNextChargeDate(day, today) {
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth();
+  const thisMonth = getChargeDate(year, month, day);
+  return thisMonth > today ? thisMonth : getChargeDate(year, month + 1, day);
 }
 
 function computeMembers(payments, today) {
@@ -77,8 +64,13 @@ function computeMembers(payments, today) {
 
     list.forEach((payment) => {
       const paidDate = parseDate(payment.date);
+      if (payment.type === 'conversion') {
+        // 요금 전환: 이전 만료일을 버리고 전환일 + 환산 잔여일로 다시 정한다.
+        coverEnd = addDays(paidDate, payment.days);
+        return;
+      }
       const start = !coverEnd || paidDate > coverEnd ? paidDate : coverEnd;
-      coverEnd = addMonths(start, payment.months);
+      coverEnd = addDays(addMonths(start, payment.months), payment.days);
     });
 
     members.push({
@@ -90,90 +82,24 @@ function computeMembers(payments, today) {
   return members.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
-function computeBalance(balance, today) {
-  const charges = Array.isArray(balance.charges) ? balance.charges : [];
-  const baseDate = balance.updated ? parseDate(balance.updated) : today;
-  const paidEvents = getChargeEvents(charges, baseDate, today);
-  const paidTotal = paidEvents.reduce((sum, event) => sum + event.amount, 0);
-  const currentAmount = (Number(balance.amount) || 0) - paidTotal;
-  const monthlyTotal = charges.reduce((sum, charge) => sum + (Number(charge.amount) || 0), 0);
-  const futureEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, today.getUTCDate()));
-  const upcoming = getChargeEvents(charges, today, futureEnd);
-  const forecastEnd = addMonths(today, 24);
-  const forecastEvents = getChargeEvents(charges, today, forecastEnd);
-  const nextCharge = upcoming[0] || null;
-
-  let runningAmount = currentAmount;
-  let insufficiency = null;
-  forecastEvents.forEach((event) => {
-    runningAmount -= event.amount;
-    if (runningAmount < 0 && !insufficiency) {
-      insufficiency = {
-        ...event,
-        remaining: runningAmount,
-        daysLeft: Math.round((event.date - today) / DAY_MS),
-      };
-    }
-  });
-
-  return {
-    currentAmount,
-    updated: fmtDate(baseDate),
-    today: fmtDate(today),
-    paidTotal,
-    monthlyTotal,
-    upcoming,
-    nextCharge,
-    insufficiency,
-  };
-}
-
-function applyBalanceUpdate(balance, balanceStatus, today) {
-  if (balanceStatus.paidTotal <= 0) return false;
-  balance.amount = balanceStatus.currentAmount;
-  balance.updated = fmtDate(today);
-  fs.writeFileSync('balance.json', `${JSON.stringify(balance, null, 2)}\n`, 'utf8');
-  return true;
-}
-
 function formatMemberLine(member) {
   if (member.daysLeft < 0) return `⚫ ${member.name} — ${Math.abs(member.daysLeft)}일 초과`;
   if (member.daysLeft === 0) return `🔴 ${member.name} — 오늘 만료!`;
   return `🟢 ${member.name} — D-${member.daysLeft}`;
 }
 
-function formatBalance(balanceStatus) {
-  const lines = ['', `💰 INR 잔액: ₹${balanceStatus.currentAmount.toLocaleString()}`];
-  lines.push(`   기준: ${balanceStatus.today} KST / 마지막 반영: ${balanceStatus.updated}`);
-
-  if (balanceStatus.paidTotal > 0) {
-    lines.push(`   지난 결제 차감: ₹${balanceStatus.paidTotal.toLocaleString()}`);
-  }
-
-  if (balanceStatus.upcoming.length > 0) {
-    let runningAmount = balanceStatus.currentAmount;
-    lines.push('   다음 결제:');
-    balanceStatus.upcoming.slice(0, 3).forEach((event) => {
-      runningAmount -= event.amount;
-      lines.push(`   - ${fmtDate(event.date)} ${event.name} ₹${event.amount.toLocaleString()} → ₹${runningAmount.toLocaleString()}`);
-    });
-  }
-
-  if (balanceStatus.insufficiency) {
-    lines.push(`🔋 충전 필요 예상: ${fmtDate(balanceStatus.insufficiency.date)} (${fmtDday(balanceStatus.insufficiency.daysLeft)})`);
-    lines.push(`🚨 잔액 부족! ${balanceStatus.insufficiency.name} ₹${balanceStatus.insufficiency.amount} 결제 후 ₹${balanceStatus.insufficiency.remaining.toLocaleString()}`);
-  } else if (balanceStatus.nextCharge && balanceStatus.currentAmount < balanceStatus.nextCharge.amount) {
-    lines.push(`🚨 잔액 부족! ${fmtDate(balanceStatus.nextCharge.date)} ${balanceStatus.nextCharge.name} ₹${balanceStatus.nextCharge.amount} 결제 불가!`);
-  } else if (balanceStatus.currentAmount < balanceStatus.monthlyTotal) {
-    lines.push(`⚠️ 이번 달 결제액(₹${balanceStatus.monthlyTotal.toLocaleString()}) 부족 예상`);
-  } else {
-    lines.push('🔋 충전 필요 예상: 24개월 내 없음');
-  }
-
+function formatBilling(billing, today) {
+  const lines = [''];
+  (billing.charges || []).forEach((charge) => {
+    const next = getNextChargeDate(charge.day, today);
+    const daysLeft = Math.round((next - today) / DAY_MS);
+    lines.push(`💴 ${charge.name}: ¥${Number(charge.amount).toLocaleString()}/월`);
+    lines.push(`   다음 결제: ${fmtDate(next)} (${fmtDday(daysLeft)})`);
+  });
   return lines.join('\n');
 }
 
-function buildMessage(options = {}) {
+function buildMessage() {
   const payments = JSON.parse(fs.readFileSync('data.json', 'utf8'));
   const today = getKstToday();
   const members = computeMembers(payments, today);
@@ -184,28 +110,26 @@ function buildMessage(options = {}) {
   ];
 
   try {
-    const balance = JSON.parse(fs.readFileSync('balance.json', 'utf8'));
-    const balanceStatus = computeBalance(balance, today);
-    lines.push(formatBalance(balanceStatus));
-    if (options.writeBalance) applyBalanceUpdate(balance, balanceStatus, today);
+    const billing = JSON.parse(fs.readFileSync('billing.json', 'utf8'));
+    lines.push(formatBilling(billing, today));
   } catch (error) {
-    // Keep the D-day notification working even if balance.json is unavailable.
+    // Keep the D-day notification working even if billing.json is unavailable.
   }
 
   return lines.join('\n');
 }
 
 if (require.main === module) {
-  console.log(buildMessage({ writeBalance: process.argv.includes('--write-balance') }));
+  console.log(buildMessage());
 }
 
 module.exports = {
+  addDays,
   addMonths,
-  computeBalance,
   computeMembers,
-  applyBalanceUpdate,
-  getChargeEvents,
+  formatBilling,
   getKstToday,
+  getNextChargeDate,
   parseDate,
   buildMessage,
 };

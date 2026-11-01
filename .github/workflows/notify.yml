@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   check-dday:
@@ -23,21 +23,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          MSG=$(node scripts/build_notify_message.js --write-balance)
+          MSG=$(node scripts/build_notify_message.js)
 
           echo "$MSG"
 
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=${MSG}"
-
-      - name: Commit updated balance
-        run: |
-          if ! git diff --quiet -- balance.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add balance.json
-            git commit -m "Update INR balance"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push
-          fi

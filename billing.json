@@ -1,0 +1,11 @@
+{
+  "currency": "JPY",
+  "effective": "2026-10-08",
+  "charges": [
+    {
+      "name": "YouTube Premium",
+      "amount": 2280,
+      "day": 8
+    }
+  ]
+}

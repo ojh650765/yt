@@ -133,24 +133,11 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 /* balance section */
 .balance-section{margin-top:4px}
 .balance-section h3{font-size:14px;color:var(--muted);letter-spacing:.1em;margin-bottom:12px}
-.balance-amount{font-family:var(--ff-en);font-size:32px;font-weight:700;text-align:center;margin-bottom:8px}
-.balance-amount.ok{color:var(--safe)}
-.balance-amount.low{color:var(--warn)}
-.balance-amount.critical{color:var(--danger)}
-.balance-updated{font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px}
 .balance-charges{font-size:14px}
 .balance-charge-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border)}
 .balance-charge-row:first-child{border-top:none}
 .balance-charge-row .bc-name{color:var(--muted)}
 .balance-charge-row .bc-val{font-family:var(--ff-en);font-weight:600;white-space:nowrap}
-.balance-forecast{margin-top:12px;padding:12px;border-radius:10px;background:var(--bg-card2);font-size:13px;color:var(--muted)}
-.balance-forecast .bf-row{display:flex;justify-content:space-between;padding:4px 0}
-.balance-forecast .bf-date{color:var(--ink)}
-.balance-forecast .bf-amt{font-family:var(--ff-en);font-weight:600}
-.balance-forecast .bf-amt.negative{color:var(--danger)}
-.balance-warning{margin-top:12px;padding:10px;border-radius:10px;font-size:14px;font-weight:600;text-align:center}
-.balance-warning.warn{background:var(--warn-bg);color:var(--warn)}
-.balance-warning.danger{background:var(--danger-bg);color:var(--danger)}
 .bal-field{margin-top:10px}
 .bal-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
 .bal-field .bal-row{display:flex;gap:6px}
@@ -439,7 +426,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
   <!-- RIGHT PANEL -->
   <div class="right-panel">
     <div class="balance-section" id="balance-section">
-      <h3>INR BALANCE</h3>
+      <h3>BILLING</h3>
       <div style="text-align:center;color:var(--muted);font-size:14px;padding:12px 0">로딩중...</div>
     </div>
   </div>
@@ -447,12 +434,12 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--ff);min-height
 
 <script>
 const DATA_URL = './data.json';
-const LS_KEY = 'yt_premium_admin_v2';
+const LS_KEY = 'yt_premium_admin_v3';
 const TOKEN_KEY = 'yt_gh_token';
-const INR_TOTAL = 389;
+const JPY_TOTAL = 2280;
 const MEMBER_COUNT = 6;
 
-let payments = [], serverData = [], isAdmin = false, hasLocalChanges = false, cachedKrwPerPerson = null, cachedInrRate = null, ghToken = null;
+let payments = [], serverData = [], isAdmin = false, hasLocalChanges = false, ghToken = null;
 
 function toast(msg, type='info') {
   document.querySelectorAll('.toast').forEach(t=>t.remove());
@@ -489,25 +476,23 @@ function clearToken(){ghToken=null;localStorage.removeItem(TOKEN_KEY);toast('토
 
 async function fetchExchangeRate(){
   try{
-    const r=await fetch('https://open.er-api.com/v6/latest/INR');const d=await r.json();
+    const r=await fetch('https://open.er-api.com/v6/latest/JPY');const d=await r.json();
     if(d.result==='success'&&d.rates&&d.rates.KRW)renderPrice(d.rates.KRW);else renderPriceError();
   }catch{renderPriceError();}
 }
 function renderPrice(rate){
-  cachedInrRate=rate;
-  const charges=(balanceData&&Array.isArray(balanceData.charges))?balanceData.charges:[{name:'YouTube Premium',amount:INR_TOTAL}];
-  const totalAmt=charges.reduce((sum,c)=>sum+(Number(c.amount)||0),0)||INR_TOTAL;
+  const charges=(billingData&&Array.isArray(billingData.charges))?billingData.charges:[{name:'YouTube Premium',amount:JPY_TOTAL}];
+  const totalAmt=charges.reduce((sum,c)=>sum+(Number(c.amount)||0),0)||JPY_TOTAL;
   const pp=totalAmt/MEMBER_COUNT, krwP=Math.round(pp*rate);
-  cachedKrwPerPerson=krwP;
   const detailRows=charges.length>1?charges.map(c=>`
-    <div class="price-row"><span class="pk">${esc(c.name)}</span><span class="pv">₹${Number(c.amount||0).toLocaleString()}</span></div>`).join(''):'';
+    <div class="price-row"><span class="pk">${esc(c.name)}</span><span class="pv">¥${Number(c.amount||0).toLocaleString()}</span></div>`).join(''):'';
   const sidebarHtml=`
     <h3>MONTHLY COST</h3>
-    <div class="price-row"><span class="pk">총액</span><span class="pv">₹${totalAmt.toLocaleString()}/월</span></div>
+    <div class="price-row"><span class="pk">총액</span><span class="pv">¥${totalAmt.toLocaleString()}/월</span></div>
     ${detailRows}
     <div class="price-row"><span class="pk">인원</span><span class="pv">${MEMBER_COUNT}명</span></div>
-    <div class="price-row"><span class="pk">1인 (₹)</span><span class="pv">₹${pp.toFixed(1)}</span></div>
-    <div class="price-row"><span class="pk">환율</span><span class="pv">1₹ = ${rate.toFixed(2)}₩</span></div>
+    <div class="price-row"><span class="pk">1인 (¥)</span><span class="pv">¥${pp.toLocaleString()}</span></div>
+    <div class="price-row"><span class="pk">환율</span><span class="pv">¥1 = ${rate.toFixed(2)}₩</span></div>
     <div class="price-highlight">
       <div class="big">₩${(Math.floor(krwP/100)*100).toLocaleString()}<small>/월</small></div>
       <div class="sub">1인 월 납부금</div>
@@ -524,11 +509,10 @@ function renderPriceError(){
 }
 
 
-let balanceData = null;
-const BALANCE_URL = './balance.json';
+let billingData = null;
 
-async function fetchBalance(){
-  try{balanceData=await fetchFile('balance.json');}catch{balanceData=null;}
+async function fetchBilling(){
+  try{billingData=await fetchFile('billing.json');}catch{billingData=null;}
 }
 
 function getNextChargeDate(day){
@@ -548,115 +532,41 @@ function getChargeDate(year,month,day){
   return new Date(year,month,Math.min(Math.max(Number(day)||1,1),last));
 }
 
-function getChargeEvents(charges,start,end){
-  const events=[];
-  const from=new Date(start);from.setHours(0,0,0,0);
-  const to=new Date(end);to.setHours(23,59,59,999);
-  const cursor=new Date(from.getFullYear(),from.getMonth(),1);
-  const endMonth=new Date(to.getFullYear(),to.getMonth()+1,1);
-  while(cursor<endMonth){
-    charges.forEach(c=>{
-      const dt=getChargeDate(cursor.getFullYear(),cursor.getMonth(),c.day);
-      if(dt>from&&dt<=to)events.push({date:dt,name:c.name,amount:Number(c.amount)||0});
-    });
-    cursor.setMonth(cursor.getMonth()+1);
-  }
-  return events.sort((a,b)=>a.date-b.date);
-}
-
-function calcBalanceForecast(){
-  if(!balanceData)return null;
-  const charges=balanceData.charges||[];
-  const now=getKstNow();
-  let baseDate=new Date((balanceData.updated||fmtDate(now))+'T00:00:00');
-  if(isNaN(baseDate))baseDate=new Date(now);
-  const paidEvents=getChargeEvents(charges,baseDate,now);
-  const paidTotal=paidEvents.reduce((sum,e)=>sum+e.amount,0);
-  const currentBalance=(Number(balanceData.amount)||0)-paidTotal;
-  const futureEnd=new Date(now.getFullYear(),now.getMonth()+4,now.getDate());
-  const events=getChargeEvents(charges,now,futureEnd);
-  const forecast=[];
-  let insuffDate=null, insuffName=null;
-  let forecastBalance=currentBalance;
-  events.forEach(e=>{
-    forecastBalance-=e.amount;
-    forecast.push({date:e.date,name:e.name,amount:e.amount,remaining:forecastBalance});
-    if(forecastBalance<0&&!insuffDate){insuffDate=e.date;insuffName=e.name;}
-  });
-  const nextCharge=events[0]||null;
-  const nextInsuff=nextCharge?currentBalance<nextCharge.amount:false;
-  return{balance:currentBalance,baseBalance:balanceData.amount,updated:balanceData.updated,charges,forecast,paidEvents,paidTotal,insuffDate,insuffName,nextCharge,nextInsuff};
-}
-
-function renderBalance(){
+function renderBilling(){
   const el=document.getElementById('balance-section');
-  if(!el||!balanceData)return;
-  const fc=calcBalanceForecast();
-  if(!fc){el.innerHTML='<h3>INR BALANCE</h3><div style="color:var(--muted);font-size:14px;text-align:center">데이터 없음</div>';return;}
+  if(!el)return;
+  if(!billingData){el.innerHTML='<h3>BILLING</h3><div style="color:var(--muted);font-size:14px;text-align:center">데이터 없음</div>';return;}
+  const charges=billingData.charges||[];
 
-  const statusClass=fc.nextInsuff?'critical':fc.insuffDate?'low':'ok';
-  let warningHtml='';
-  if(fc.nextInsuff){
-    warningHtml=`<div class="balance-warning danger">${fc.nextCharge.name}<br>₹${fc.nextCharge.amount} 결제 불가</div>`;
-  }else if(fc.insuffDate){
-    const dd=fc.insuffDate;
-    warningHtml=`<div class="balance-warning warn">${dd.getFullYear()}년 ${dd.getMonth()+1}월 ${dd.getDate()}일<br>${fc.insuffName} 잔액 부족</div>`;
-  }
-
-  const chargesHtml=fc.charges.map(c=>{
+  const chargesHtml=charges.map(c=>{
     const nd=getNextChargeDate(c.day);
-    return`<div class="balance-charge-row"><span class="bc-name">${c.name} (${nd.getMonth()+1}/${nd.getDate()})</span><span class="bc-val">₹${c.amount}</span></div>`;
-  }).join('');
-
-
-  const forecastHtml=fc.forecast.slice(0,4).map(f=>{
-    const ds=(f.date.getMonth()+1)+'/'+f.date.getDate();
-    const amtClass=f.remaining<0?'negative':'';
-    return`<div class="bf-row"><span>${ds} ${f.name}</span><span class="bf-amt ${amtClass}">₹${f.remaining.toLocaleString()}</span></div>`;
+    return`<div class="balance-charge-row"><span class="bc-name">${esc(c.name)}</span><span class="bc-val">¥${Number(c.amount||0).toLocaleString()}/월</span></div>
+    <div class="balance-charge-row"><span class="bc-name">다음 결제일</span><span class="bc-val">${fmtDate(nd)}</span></div>`;
   }).join('');
 
   let editHtml='';
   if(isAdmin){
-    const chargeEdits=fc.charges.map((c,i)=>`
+    const chargeEdits=charges.map((c,i)=>`
       <div class="bal-field">
-        <label>${c.name} (매월 ${c.day}일)</label>
+        <label>${esc(c.name)} (매월 ${c.day}일)</label>
         <div class="bal-row">
-          <input type="number" id="charge-amt-${i}" value="${c.amount}" placeholder="₹">
+          <input type="number" id="charge-amt-${i}" value="${c.amount}" placeholder="¥">
           <input type="number" id="charge-day-${i}" value="${c.day}" placeholder="일" style="max-width:60px">
         </div>
       </div>`).join('');
     editHtml=`
-      <div class="bal-field"><label>잔액 (₹)</label><div class="bal-row"><input type="number" id="bal-input" value="${fc.balance}"></div></div>
       ${chargeEdits}
-      <button class="bal-save" onclick="updateBalance()">저장</button>`;
+      <button class="bal-save" onclick="updateBilling()">저장</button>`;
   }
 
-  const paidNote=fc.paidTotal>0?` · 지난 결제 ₹${fc.paidTotal.toLocaleString()} 반영`:'';
-
   el.innerHTML=`
-    <h3>INR BALANCE</h3>
-    <div class="balance-amount ${statusClass}">₹${fc.balance.toLocaleString()}</div>
-    <div class="balance-updated">${fc.updated} 기준${paidNote}</div>
+    <h3>BILLING</h3>
     <div class="balance-charges">${chargesHtml}</div>
-    <div class="balance-forecast"><div style="font-weight:600;margin-bottom:6px;color:var(--ink)">결제 예상</div>${forecastHtml}</div>
-    ${warningHtml}
     ${editHtml}`;
-
-
-  updateMonthlyCost();
 }
 
-function updateMonthlyCost(){
-  if(cachedInrRate)renderPrice(cachedInrRate);
-}
-
-async function updateBalance(){
-  const v=parseInt(document.getElementById('bal-input').value,10);
-  if(isNaN(v)||v<0){alert('올바른 금액을 입력하세요');return;}
-  balanceData.amount=v;
-  balanceData.updated=fmtDate(new Date());
-
-  balanceData.charges.forEach((c,i)=>{
+async function updateBilling(){
+  billingData.charges.forEach((c,i)=>{
     const amtEl=document.getElementById('charge-amt-'+i);
     const dayEl=document.getElementById('charge-day-'+i);
     if(amtEl)c.amount=parseInt(amtEl.value,10)||c.amount;
@@ -666,17 +576,17 @@ async function updateBalance(){
     const info=getRepoInfo();
     if(info&&info.repo){
       try{
-        const g=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/balance.json`,{headers:{'Authorization':'token '+ghToken}});
+        const g=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/billing.json`,{headers:{'Authorization':'token '+ghToken}});
         if(g.ok){
           const f=await g.json();
-          const c=btoa(unescape(encodeURIComponent(JSON.stringify(balanceData,null,2)+'\n')));
-          const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/balance.json`,{method:'PUT',headers:{'Authorization':'token '+ghToken,'Content-Type':'application/json'},body:JSON.stringify({message:'Update balance',content:c,sha:f.sha})});
+          const c=btoa(unescape(encodeURIComponent(JSON.stringify(billingData,null,2)+'\n')));
+          const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/billing.json`,{method:'PUT',headers:{'Authorization':'token '+ghToken,'Content-Type':'application/json'},body:JSON.stringify({message:'Update billing',content:c,sha:f.sha})});
           if(r.ok)toast('저장 완료','ok');else toast('저장 실패','err');
         }
       }catch{toast('네트워크 오류','err');}
     }
   }else{toast('토큰이 없어 로컬만 반영','info');}
-  renderBalance();
+  renderBilling();
   fetchExchangeRate();
 }
 
@@ -710,7 +620,7 @@ async function init(){
   const now=new Date(),dow=['일','월','화','수','목','금','토'][now.getDay()];
   document.getElementById('pub-date').textContent=fmtDate(now)+' ('+dow+')';
   setupSearch();
-  await fetchBalance();renderBalance();
+  await fetchBilling();renderBilling();
   fetchExchangeRate();
 }
 
@@ -719,16 +629,26 @@ function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2
 function addMonths(s,m){const d=new Date(s+'T00:00:00');d.setMonth(d.getMonth()+m);return d;}
 function daysBetween(a,b){const da=new Date(a),db=new Date(b);da.setHours(0,0,0,0);db.setHours(0,0,0,0);return Math.round((db-da)/86400000);}
 function uid(){return 'p'+Date.now()+Math.random().toString(36).slice(2,6);}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+(Number(n)||0));return r;}
+function fmtPeriod(months,days){return days?months+'개월 '+days+'일':months+'개월';}
 
 function computeStatus(data){
   const groups={};data.forEach(p=>{if(!groups[p.name])groups[p.name]=[];groups[p.name].push(p);});
   const today=new Date();today.setHours(0,0,0,0);const result=[];
   for(const name in groups){
     const list=groups[name].slice().sort((a,b)=>a.date.localeCompare(b.date));
-    let coverEnd=null,totalMonths=0;
-    list.forEach(p=>{const pd=new Date(p.date+'T00:00:00');const st=(!coverEnd||pd>coverEnd)?pd:coverEnd;coverEnd=addMonths(fmtDate(st),p.months);coverEnd.setHours(0,0,0,0);totalMonths+=p.months;});
-    const last=list[list.length-1],dl=daysBetween(today,coverEnd);
-    result.push({name,lastPayDate:last.date,lastPayMonths:last.months,totalMonths,coverEnd:fmtDate(coverEnd),daysLeft:dl,state:dl<0?'expired':dl<=30?'soon':'safe',count:list.length});
+    let coverEnd=null,totalMonths=0,totalDays=0;
+    list.forEach(p=>{
+      const pd=new Date(p.date+'T00:00:00');
+      // 요금 전환: 이전 만료일을 버리고 전환일 + 환산 잔여일로 다시 정한다.
+      if(p.type==='conversion'){coverEnd=addDays(pd,p.days);return;}
+      const st=(!coverEnd||pd>coverEnd)?pd:coverEnd;
+      coverEnd=addDays(addMonths(fmtDate(st),p.months),p.days);coverEnd.setHours(0,0,0,0);
+      totalMonths+=p.months;totalDays+=Number(p.days)||0;
+    });
+    const paid=list.filter(p=>p.type!=='conversion');
+    const last=paid[paid.length-1]||list[list.length-1],dl=daysBetween(today,coverEnd);
+    result.push({name,lastPayDate:last.date,lastPayMonths:last.months,lastPayDays:Number(last.days)||0,totalMonths,totalDays,coverEnd:fmtDate(coverEnd),daysLeft:dl,state:dl<0?'expired':dl<=30?'soon':'safe',count:list.length});
   }
   result.sort((a,b)=>a.daysLeft-b.daysLeft);return result;
 }
@@ -781,7 +701,7 @@ function doSearch(name){
     <div class="dday-big ${found.state}">${dn}</div>
     <div class="dday-label">${dl}</div>
     <div class="info-grid">
-      <div class="info-item"><div class="ik">납부 개월</div><div class="iv">${found.totalMonths}개월</div></div>
+      <div class="info-item"><div class="ik">납부 개월</div><div class="iv">${fmtPeriod(found.totalMonths,found.totalDays)}</div></div>
       <div class="info-item"><div class="ik">마지막 결제</div><div class="iv">${found.lastPayDate}</div></div>
       <div class="info-item"><div class="ik">다음 결제일</div><div class="iv">${found.coverEnd}</div></div>
     </div>
@@ -800,7 +720,7 @@ function renderAdmin(){
   const names=[...new Set(payments.map(p=>p.name))];
   document.getElementById('name-list').innerHTML=names.map(n=>'<option value="'+esc(n)+'">').join('');
   document.getElementById('f-date').value=fmtDate(now);
-  const status=computeStatus(payments),total=payments.length,tm=payments.reduce((s,p)=>s+Number(p.months),0);
+  const status=computeStatus(payments),total=payments.filter(p=>p.type!=='conversion').length,tm=payments.reduce((s,p)=>s+Number(p.months),0);
   const ec=status.filter(s=>s.state==='expired').length,sc=status.filter(s=>s.state==='soon').length;
   const nu=status.filter(s=>s.daysLeft>=0).sort((a,b)=>a.daysLeft-b.daysLeft)[0];
   document.getElementById('summary').innerHTML=`
@@ -813,11 +733,13 @@ function renderAdmin(){
   if(!status.length){mBox.innerHTML='<div class="empty-msg">NO DATA</div>';}
   else{mBox.innerHTML=status.map(s=>{
     const dt=s.daysLeft<0?'D+'+Math.abs(s.daysLeft)+' · 만료됨':s.daysLeft===0?'D-DAY · 오늘!':'D-'+s.daysLeft;
-    return`<div class="card ${s.state==='safe'?'':'card-'+s.state}"><div class="status-dot dot-${s.state}"></div><div class="c-name">${esc(s.name)}</div><div class="c-sub">${s.totalMonths}개월 누적</div><div class="c-row"><span class="ck">마지막 결제</span><span class="cv">${s.lastPayDate}</span></div><div class="c-row"><span class="ck">결제 개월</span><span class="cv">${s.lastPayMonths}개월</span></div><div class="c-row"><span class="ck">커버 만료</span><span class="cv">${s.coverEnd}</span></div><div class="c-dday ${s.state}">${dt}</div><div class="c-actions"><button onclick="quickAdd('${esc(s.name)}')">+ 결제 추가</button></div></div>`;
+    return`<div class="card ${s.state==='safe'?'':'card-'+s.state}"><div class="status-dot dot-${s.state}"></div><div class="c-name">${esc(s.name)}</div><div class="c-sub">${fmtPeriod(s.totalMonths,s.totalDays)} 누적</div><div class="c-row"><span class="ck">마지막 결제</span><span class="cv">${s.lastPayDate}</span></div><div class="c-row"><span class="ck">결제 개월</span><span class="cv">${fmtPeriod(s.lastPayMonths,s.lastPayDays)}</span></div><div class="c-row"><span class="ck">커버 만료</span><span class="cv">${s.coverEnd}</span></div><div class="c-dday ${s.state}">${dt}</div><div class="c-actions"><button onclick="quickAdd('${esc(s.name)}')">+ 결제 추가</button></div></div>`;
   }).join('');}
   const sorted=[...payments].sort((a,b)=>b.date.localeCompare(a.date)),hBox=document.getElementById('history');
   if(!sorted.length){hBox.innerHTML='<div class="empty-msg">NO HISTORY</div>';}
-  else{hBox.innerHTML=sorted.map(p=>`<div class="history-row"><div class="h-date">${p.date}</div><div class="h-name">${esc(p.name)}</div><div class="h-months">${p.months}개월</div><button class="h-del" onclick="deletePayment('${p.id}')">DEL</button></div>`).join('');}
+  else{hBox.innerHTML=sorted.map(p=>p.type==='conversion'
+    ?`<div class="history-row"><div class="h-date">${p.date}</div><div class="h-name">${esc(p.name)}</div><div class="h-months">일본 전환 · ${p.days}일</div></div>`
+    :`<div class="history-row"><div class="h-date">${p.date}</div><div class="h-name">${esc(p.name)}</div><div class="h-months">${fmtPeriod(p.months,Number(p.days)||0)}</div><button class="h-del" onclick="deletePayment('${p.id}')">DEL</button></div>`).join('');}
   const saveBtn=document.getElementById('save-btn');
   if(ghToken&&hasLocalChanges){saveBtn.style.display='block';saveBtn.classList.add('has-changes');}
   else{saveBtn.style.display='none';saveBtn.classList.remove('has-changes');}

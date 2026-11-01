@@ -34,5 +34,53 @@
     "name": "류동헌",
     "date": "2026-08-04",
     "months": 5
+  },
+  {
+    "id": "jp1",
+    "name": "이승준",
+    "date": "2026-10-08",
+    "type": "conversion",
+    "months": 0,
+    "days": 7
+  },
+  {
+    "id": "jp2",
+    "name": "이준희",
+    "date": "2026-10-08",
+    "type": "conversion",
+    "months": 0,
+    "days": 7
+  },
+  {
+    "id": "jp3",
+    "name": "류동헌",
+    "date": "2026-10-08",
+    "type": "conversion",
+    "months": 0,
+    "days": 26
+  },
+  {
+    "id": "jp4",
+    "name": "김주용",
+    "date": "2026-10-08",
+    "type": "conversion",
+    "months": 0,
+    "days": 34
+  },
+  {
+    "id": "jp5",
+    "name": "구회원",
+    "date": "2026-10-08",
+    "type": "conversion",
+    "months": 0,
+    "days": 79
+  },
+  {
+    "id": "t20261015000000",
+    "name": "이승준",
+    "date": "2026-10-15",
+    "months": 12,
+    "days": 15,
+    "amount_krw": 40000
   }
 ]

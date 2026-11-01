@@ -9,7 +9,7 @@ GitHub Actions에서 schedule(폴링)로 실행됩니다.
   /add 이름 개월수 날짜     결제 추가 (날짜 지정)
   /del 이름                 마지막 결제 삭제
   /status                   전체 현황
-  /balance                  INR 잔액 및 다음 결제
+  /billing                  월 요금(엔화) 및 다음 결제일 (/balance도 동작)
   /members                  등록된 멤버 목록
   /help                     도움말
 
@@ -43,7 +43,7 @@ ALLOWED_CHATS = [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
 GH_REPO = os.environ.get("GH_REPO", "")
 DATA_PATH = os.environ.get("DATA_PATH", "data.json")
-BALANCE_PATH = os.environ.get("BALANCE_PATH", "balance.json")
+BILLING_PATH = os.environ.get("BILLING_PATH", "billing.json")
 
 KST = timezone(timedelta(hours=9))
 
@@ -87,7 +87,7 @@ def send_msg(chat_id, text):
 
 BOT_COMMANDS = [
     {"command": "status", "description": "전체 결제 현황"},
-    {"command": "balance", "description": "INR 잔액과 충전 필요일"},
+    {"command": "billing", "description": "월 요금과 다음 결제일"},
     {"command": "members", "description": "등록된 멤버 목록"},
     {"command": "add", "description": "결제 추가: /add 이름 개월수 [날짜]"},
     {"command": "del", "description": "마지막 결제 삭제: /del 이름"},
@@ -123,8 +123,8 @@ def save_data(payments, sha, commit_msg):
     return result is not None
 
 
-def load_balance():
-    result = gh_api(f"contents/{BALANCE_PATH}")
+def load_billing():
+    result = gh_api(f"contents/{BILLING_PATH}")
     if not result or "content" not in result:
         return None
     content = base64.b64decode(result["content"]).decode("utf-8")
@@ -167,23 +167,16 @@ def get_charge_date(year, month, day):
     return date(year, month, min(max(int(day or 1), 1), last_day))
 
 
-def get_charge_events(charges, start, end):
-    events = []
-    cursor = date(start.year, start.month, 1)
-    end_month = date(end.year, end.month, 1)
+def get_next_charge_date(day, today):
+    this_month = get_charge_date(today.year, today.month, day)
+    if this_month > today:
+        return this_month
+    next_month = add_months(date(today.year, today.month, 1), 1)
+    return get_charge_date(next_month.year, next_month.month, day)
 
-    while cursor <= end_month:
-        for charge in charges:
-            charge_date = get_charge_date(cursor.year, cursor.month, charge.get("day", 1))
-            if start < charge_date <= end:
-                events.append({
-                    "date": charge_date,
-                    "name": charge.get("name", "결제"),
-                    "amount": int(charge.get("amount") or 0),
-                })
-        cursor = add_months(cursor, 1)
 
-    return sorted(events, key=lambda x: x["date"])
+def format_period(months, days=0):
+    return f"{months}개월 {days}일" if days else f"{months}개월"
 
 
 def format_dday(days_left):
@@ -194,67 +187,14 @@ def format_dday(days_left):
     return f"D-{days_left}"
 
 
-def compute_balance(balance):
+def format_billing(billing):
     today = datetime.now(KST).date()
-    updated = date.fromisoformat(balance.get("updated")) if balance.get("updated") else today
-    charges = balance.get("charges") if isinstance(balance.get("charges"), list) else []
-    paid_events = get_charge_events(charges, updated, today)
-    paid_total = sum(event["amount"] for event in paid_events)
-    current_amount = int(balance.get("amount") or 0) - paid_total
-    upcoming = get_charge_events(charges, today, add_months(today, 1))
-    forecast_events = get_charge_events(charges, today, add_months(today, 24))
-    running_amount = current_amount
-    insufficiency = None
-
-    for event in forecast_events:
-        running_amount -= event["amount"]
-        if running_amount < 0 and insufficiency is None:
-            insufficiency = {
-                **event,
-                "remaining": running_amount,
-                "days_left": (event["date"] - today).days,
-            }
-            break
-
-    return {
-        "today": today,
-        "updated": updated,
-        "current_amount": current_amount,
-        "paid_total": paid_total,
-        "upcoming": upcoming,
-        "insufficiency": insufficiency,
-    }
-
-
-def format_balance(balance_status):
-    lines = [
-        "💰 <b>INR 잔액</b>",
-        f"현재: <b>₹{balance_status['current_amount']:,}</b>",
-        f"기준: {balance_status['today'].isoformat()} KST / 마지막 반영: {balance_status['updated'].isoformat()}",
-    ]
-
-    if balance_status["paid_total"] > 0:
-        lines.append(f"지난 결제 차감: ₹{balance_status['paid_total']:,}")
-
-    if balance_status["upcoming"]:
-        lines.extend(["", "<b>다음 결제</b>"])
-        running_amount = balance_status["current_amount"]
-        for event in balance_status["upcoming"][:3]:
-            running_amount -= event["amount"]
-            lines.append(
-                f"• {event['date'].isoformat()} {event['name']} ₹{event['amount']:,} → 잔액 ₹{running_amount:,}"
-            )
-
-    if balance_status["insufficiency"]:
-        event = balance_status["insufficiency"]
-        lines.extend([
-            "",
-            f"🔋 충전 필요 예상: <b>{event['date'].isoformat()}</b> ({format_dday(event['days_left'])})",
-            f"🚨 {event['name']} ₹{event['amount']:,} 결제 후 잔액 ₹{event['remaining']:,}",
-        ])
-    else:
-        lines.extend(["", "🔋 충전 필요 예상: 24개월 내 없음"])
-
+    lines = ["💴 <b>요금 (일본)</b>"]
+    for charge in billing.get("charges", []):
+        next_date = get_next_charge_date(charge.get("day", 1), today)
+        days_left = (next_date - today).days
+        lines.append(f"{charge.get('name', '결제')}: <b>¥{int(charge.get('amount') or 0):,}</b>/월")
+        lines.append(f"다음 결제: {next_date.isoformat()} ({format_dday(days_left)})")
     return "\n".join(lines)
 
 
@@ -268,18 +208,26 @@ def compute_status(payments):
         lst.sort(key=lambda x: x["date"])
         cover_end = None
         total_months = 0
+        total_days = 0
         for p in lst:
             pay_d = date.fromisoformat(p["date"])
+            extra_days = int(p.get("days") or 0)
+            if p.get("type") == "conversion":
+                # 요금 전환: 이전 만료일을 버리고 전환일 + 환산 잔여일로 다시 정한다.
+                cover_end = pay_d + timedelta(days=extra_days)
+                continue
             start = pay_d if (cover_end is None or pay_d > cover_end) else cover_end
-            cover_end = add_months(start, int(p["months"]))
+            cover_end = add_months(start, int(p["months"])) + timedelta(days=extra_days)
             total_months += int(p["months"])
-        last = lst[-1]
+            total_days += extra_days
+        paid = [p for p in lst if p.get("type") != "conversion"]
+        last = paid[-1] if paid else lst[-1]
         days_left = (cover_end - today).days
         state = "expired" if days_left < 0 else ("soon" if days_left <= 30 else "safe")
         result.append({
             "name": name, "cover_end": cover_end.isoformat(),
             "days_left": days_left, "state": state,
-            "total_months": total_months,
+            "total_months": total_months, "total_days": total_days,
             "last_date": last["date"], "last_months": last["months"],
         })
     result.sort(key=lambda x: x["days_left"])
@@ -292,7 +240,7 @@ def format_status(status_list):
         emoji = {"safe": "🟢", "soon": "🟡", "expired": "🔴"}[s["state"]]
         dday = f"D+{abs(s['days_left'])}" if s["days_left"] < 0 else f"D-{s['days_left']}"
         lines.append(f"{emoji} <b>{s['name']}</b>  {dday}")
-        lines.append(f"    만료: {s['cover_end']}  ({s['total_months']}개월 누적)")
+        lines.append(f"    만료: {s['cover_end']}  ({format_period(s['total_months'], s['total_days'])} 누적)")
         lines.append("")
     lines.append(f"<i>{datetime.now(KST).strftime('%Y-%m-%d %H:%M')} KST</i>")
     return "\n".join(lines)
@@ -303,7 +251,7 @@ def help_text():
         "🎬 <b>YouTube Premium 결제 관리 봇</b>\n\n"
         "📌 <b>명령어</b>\n\n"
         "<b>/status</b> — 전체 결제 현황\n"
-        "<b>/balance</b> — INR 잔액과 다음 결제\n"
+        "<b>/billing</b> — 월 요금과 다음 결제일\n"
         "<b>/members</b> — 등록된 멤버 목록\n"
         "<b>/add 이름 개월수</b> — 오늘 날짜로 결제 추가\n"
         "  예: <code>/add 구회원 3</code>\n"
@@ -372,12 +320,12 @@ def handle_message(msg):
         send_msg(chat_id, format_status(compute_status(payments)))
         return
 
-    if cmd == "/balance":
-        balance = load_balance()
-        if not balance:
-            send_msg(chat_id, "balance.json을 불러올 수 없습니다")
+    if cmd in ("/billing", "/balance"):
+        billing = load_billing()
+        if not billing:
+            send_msg(chat_id, "billing.json을 불러올 수 없습니다")
             return
-        send_msg(chat_id, format_balance(compute_balance(balance)))
+        send_msg(chat_id, format_billing(billing))
         return
 
     if cmd == "/members":
@@ -463,7 +411,7 @@ def handle_add(chat_id, args):
         if ms:
             emoji = {"safe": "🟢", "soon": "🟡", "expired": "🔴"}[ms["state"]]
             dday = f"D+{abs(ms['days_left'])}" if ms["days_left"] < 0 else f"D-{ms['days_left']}"
-            result += f"\n{emoji} 만료일: <b>{ms['cover_end']}</b>  {dday}\n    총 {ms['total_months']}개월 누적"
+            result += f"\n{emoji} 만료일: <b>{ms['cover_end']}</b>  {dday}\n    총 {format_period(ms['total_months'], ms['total_days'])} 누적"
         send_msg(chat_id, result)
     else:
         send_msg(chat_id, "❌ GitHub 저장 실패. 다시 시도해주세요.")
@@ -489,16 +437,19 @@ def handle_del(chat_id, args):
 
     member_payments = sorted([p for p in payments if p["name"] == matched], key=lambda x: x["date"])
     last = member_payments[-1]
+    if last.get("type") == "conversion":
+        send_msg(chat_id, f"⚠️ {matched}: 일본 요금 전환 이후 결제 기록이 없어 삭제할 수 없습니다")
+        return
     payments = [p for p in payments if p["id"] != last["id"]]
     commit_msg = f"Delete payment: {matched} {last['months']}mo ({last['date']}) via Telegram"
 
     if save_data(payments, sha, commit_msg):
-        result = f"🗑️ <b>삭제 완료</b>\n\n👤 {matched}\n📅 {last['date']} / {last['months']}개월 삭제"
+        result = f"🗑️ <b>삭제 완료</b>\n\n👤 {matched}\n📅 {last['date']} / {format_period(last['months'], int(last.get('days') or 0))} 삭제"
         if any(p["name"] == matched for p in payments):
             status = compute_status(payments)
             ms = next((s for s in status if s["name"] == matched), None)
             if ms:
-                result += f"\n\n현재 만료일: {ms['cover_end']} (D-{ms['days_left']})"
+                result += f"\n\n현재 만료일: {ms['cover_end']} ({format_dday(ms['days_left'])})"
         else:
             result += "\n\n⚠️ 이 멤버의 기록이 모두 삭제됨"
         send_msg(chat_id, result)
